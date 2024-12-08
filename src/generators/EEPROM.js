@@ -58,7 +58,7 @@ function hex_generator(form, stringOnly=false)
 		
 		//WORD ADDRESS 0-7
 		writeEEPROMbyte_byteaddress(pdiControl, 0, record);    // PDI control: SPI slave (mapped to register 0x0140)
-		writeEEPROMbyte_byteaddress(0x06,       1, record);    // ESC configuration: Distributed clocks Sync Out and Latch In enabled (mapped register 0x0141)
+		writeEEPROMbyte_byteaddress(0x03,       1, record);    // ESC configuration: Distributed clocks Sync Out and Latch In enabled (mapped register 0x0141)
 		writeEEPROMbyte_byteaddress(spiMode,    2, record);    // SPI mode (mapped to register 0x0150)
 		writeEEPROMbyte_byteaddress(0x44,       3, record);    // SYNC /LATCH configuration (mapped to 0x0151). Make both Syncs output
 		writeEEPROMword_wordaddress(0x0064,     2, record);    // Syncsignal Pulselenght in 10ns units(mapped to 0x0982:0x0983)

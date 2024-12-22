@@ -25,6 +25,7 @@
    <script src="src/generators/esi_xml.js"></script>
    <script src="src/generators/objectlist.js"></script>
    <script src="src/generators/utypes.js"></script>   
+   <script src="src/generators/structure_handle_generator.js"></script>
    
    <script src="src/ui.js"></script>
    
@@ -428,6 +429,13 @@
          </button>
          <br>
          <textarea cols = "150" rows = "12" name="utypes">utypes.h</textarea><br><br>
+         structure_handle_cpp.h:
+         <button name="Download_structure_handle_cpp" 
+            onClick="downloadFile(getOutputForm().structure_handle_cpp.value, 'structure_handle_cpp.h', 'text/plain');">
+            🔽 &nbsp; Download &nbsp;
+         </button>
+         <br>
+         <textarea cols="150" rows="12" name="structure_handle_cpp">structure_handle_cpp.h</textarea><br><br>
          <input id="restoreFileInput" type='file' accept=".json" style="visibility:hidden;" onchange="readFile(event)" />
       </form>
    </div>

@@ -119,6 +119,7 @@ function processForm(form)
 	outputCtl.objectlist.value = objectlist_generator(form, od, indexes);
 	outputCtl.ecat_options.value = ecat_options_generator(form, od, indexes);
 	outputCtl.utypes.value = utypes_generator(form, od, indexes);
+	outputCtl.structure_handle_cpp.value = structure_handle_generator(form, od, indexes);
 	outputCtl.HEX.hexData = hex_generator(form);
 	outputCtl.HEX.value = toIntelHex(outputCtl.HEX.hexData);
 	outputCtl.HEX.header = toEsiEepromH(outputCtl.HEX.hexData);

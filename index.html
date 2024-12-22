@@ -26,7 +26,8 @@
    <script src="src/generators/objectlist.js"></script>
    <script src="src/generators/utypes.js"></script>   
    <script src="src/generators/structure_handle_generator.js"></script>
-   
+   <script src="src/generators/structure_handle_c_generator.js"></script>
+   <script src="src/generators/ioctl_lan9252_generator.js"></script>
    <script src="src/ui.js"></script>
    
    <link rel="stylesheet" href="styles/styles.css">
@@ -436,6 +437,20 @@
          </button>
          <br>
          <textarea cols="150" rows="12" name="structure_handle_cpp">structure_handle_cpp.h</textarea><br><br>
+         structure_handle_c.h:
+         <button name="Download_structure_handle_c"
+            onClick="downloadFile(getOutputForm().structure_handle_c.value, 'structure_handle_c.h', 'text/plain');">
+            🔽 &nbsp; Download &nbsp;
+         </button>
+         <br>
+         <textarea cols="150" rows="12" name="structure_handle_c">structure_handle_c.h</textarea><br><br>
+         ioctl_lan9252.h:
+         <button name="Download_ioctl_lan9252"
+            onClick="downloadFile(getOutputForm().ioctl_lan9252.value, 'ioctl_lan9252.h', 'text/plain');">
+            🔽 &nbsp; Download &nbsp;
+         </button>
+         <br>
+         <textarea cols="150" rows="12" name="ioctl_lan9252">ioctl_lan9252.h</textarea><br><br>
          <input id="restoreFileInput" type='file' accept=".json" style="visibility:hidden;" onchange="readFile(event)" />
       </form>
    </div>

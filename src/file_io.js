@@ -43,6 +43,7 @@ function downloadGeneratedFilesZipped(result, projectName) {
 	zip.file('ecat_options.h', result.ecat_options.value);
 	zip.file('objectlist.c', result.objectlist.value);
 	zip.file('utypes.h', result.utypes.value);
+	zip.file('structure_handle_cpp.h', result.structure_handle_cpp.value);
 	zip.file('esi.json', result.backupJson);
 
 	zip.generateAsync({type:"blob"}).then(function (blob) { // generate the zip file

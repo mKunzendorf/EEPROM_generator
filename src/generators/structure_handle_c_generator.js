@@ -13,8 +13,6 @@ function structure_handle_c_generator(form, od, indexes) {
 #include <linux/uaccess.h>
 #include "ioctl_lan9252.h"
 
-#pragma pack(push, 1)  // Align structures to 1-byte boundaries
-
 `;
 
     // Define input_structure
@@ -156,10 +154,8 @@ extern struct mutex ethercat_output_structure_mutex;
 
 `;
 
-    // Close header guard and pragma
-    let footer = `#pragma pack(pop)      // Restore default alignment
-
-#endif // STRUCTURE_HANDLE_C_H
+    // Close header guard
+    let footer = `#endif // STRUCTURE_HANDLE_C_H
 `;
 
     // Combine all parts

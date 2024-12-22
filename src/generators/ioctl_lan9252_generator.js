@@ -5,19 +5,25 @@
 
 'use strict';
 
-// ####################### ioctl_lan9252.h generation ####################### //
-
 function ioctl_lan9252_generator(form, od, indexes) {
+
+    // Define PDO mapping identifiers
+    const txpdo = 'txpdo';
+    const rxpdo = 'rxpdo';
+
     let header = `#ifndef IOCTL_LAN9252_H
 #define IOCTL_LAN9252_H
 
 `;
 
     // Definitions for byte counts
-    header += `#define CUST_BYTE_NUM_OUT ${getTotalOutputBytes(od, indexes)}
-#define CUST_BYTE_NUM_IN ${getTotalInputBytes(od, indexes)}
-#define TOT_BYTE_NUM_ROUND_OUT ${roundUpToMultiple(getTotalOutputBytes(od, indexes), 4)}
-#define TOT_BYTE_NUM_ROUND_IN ${roundUpToMultiple(getTotalInputBytes(od, indexes), 4)}
+    const totalOutputBytes = getTotalOutputBytes(od, indexes);
+    const totalInputBytes = getTotalInputBytes(od, indexes);
+
+    header += `#define CUST_BYTE_NUM_OUT ${totalOutputBytes}
+#define CUST_BYTE_NUM_IN ${totalInputBytes}
+#define TOT_BYTE_NUM_ROUND_OUT ${roundUpToMultiple(totalOutputBytes, 4)}
+#define TOT_BYTE_NUM_ROUND_IN ${roundUpToMultiple(totalInputBytes, 4)}
 
 `;
 
@@ -68,11 +74,11 @@ function ioctl_lan9252_generator(form, od, indexes) {
             const varName = variableName(objd.name);
             const upperVarName = varName.toUpperCase();
             const ctype = getCType(objd.dtype) + ' *';
-            if (objd.pdo_mappings.includes(rxpdo)) {
+            if (objd.pdo_mappings.includes(txpdo)) {
                 ioctlCommands += `#define WR_VALUE_${upperVarName} _IOW('a', ${ioctlCode}, ${ctype})
 `;
                 ioctlCode++;
-            } else if (objd.pdo_mappings.includes(txpdo)) {
+            } else if (objd.pdo_mappings.includes(rxpdo)) {
                 ioctlCommands += `#define RD_VALUE_${upperVarName} _IOR('a', ${ioctlCode}, ${ctype})
 `;
                 ioctlCode++;
@@ -91,17 +97,16 @@ function ioctl_lan9252_generator(form, od, indexes) {
 
     function getCType(dtype) {
         switch (dtype) {
-            case DTYPE.UNSIGNED8: return 'uint8_t';
-            case DTYPE.UNSIGNED16: return 'uint16_t';
-            case DTYPE.UNSIGNED32: return 'uint32_t';
-            case DTYPE.UNSIGNED64: return 'uint64_t';
-            case DTYPE.INTEGER8: return 'int8_t';
-            case DTYPE.INTEGER16: return 'int16_t';
-            case DTYPE.INTEGER32: return 'int32_t';
-            case DTYPE.INTEGER64: return 'int64_t';
-            case DTYPE.REAL32: return 'float';
-            case DTYPE.REAL64: return 'double';
-            // Add more cases as needed
+            case 'UNSIGNED8': return 'uint8_t';
+            case 'UNSIGNED16': return 'uint16_t';
+            case 'UNSIGNED32': return 'uint32_t';
+            case 'UNSIGNED64': return 'uint64_t';
+            case 'INTEGER8': return 'int8_t';
+            case 'INTEGER16': return 'int16_t';
+            case 'INTEGER32': return 'int32_t';
+            case 'INTEGER64': return 'int64_t';
+            case 'REAL32': return 'float';
+            case 'REAL64': return 'double';
             default: return 'uint32_t'; // Default type
         }
     }
@@ -115,7 +120,7 @@ function ioctl_lan9252_generator(form, od, indexes) {
         indexes.forEach(index => {
             const objd = od[index];
             if (objd.pdo_mappings && objd.pdo_mappings.includes(txpdo)) {
-                totalBytes += objd.size;
+                totalBytes += getDataTypeSize(objd.dtype);
             }
         });
         return totalBytes;
@@ -126,10 +131,27 @@ function ioctl_lan9252_generator(form, od, indexes) {
         indexes.forEach(index => {
             const objd = od[index];
             if (objd.pdo_mappings && objd.pdo_mappings.includes(rxpdo)) {
-                totalBytes += objd.size;
+                totalBytes += getDataTypeSize(objd.dtype);
             }
         });
         return totalBytes;
+    }
+
+    function getDataTypeSize(dtype) {
+        switch (dtype) {
+            case 'BOOLEAN':
+            case 'UNSIGNED8':
+            case 'INTEGER8': return 1;
+            case 'UNSIGNED16':
+            case 'INTEGER16': return 2;
+            case 'UNSIGNED32':
+            case 'INTEGER32':
+            case 'REAL32': return 4;
+            case 'UNSIGNED64':
+            case 'INTEGER64':
+            case 'REAL64': return 8;
+            default: return 4; // Default size
+        }
     }
 
     function roundUpToMultiple(number, multiple) {

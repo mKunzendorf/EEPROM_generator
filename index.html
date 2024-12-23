@@ -29,6 +29,7 @@
    <script src="src/generators/structure_handle_c_generator.js"></script>
    <script src="src/generators/ioctl_lan9252_generator.js"></script>
    <script src="src/ui.js"></script>
+   <script src="src/generators/main_generator.js"></script>
    
    <link rel="stylesheet" href="styles/styles.css">
 </head>
@@ -451,6 +452,13 @@
          </button>
          <br>
          <textarea cols="150" rows="12" name="ioctl_lan9252">ioctl_lan9252.h</textarea><br><br>
+         main.cpp:
+         <button name="Download_main_cpp" 
+            onClick="downloadFile(getOutputForm().main_cpp.value, fileName = 'main.cpp', contentType = 'text/plain');">
+            🔽 &nbsp; Download &nbsp;
+         </button>
+         <br>
+         <textarea cols="150" rows="12" name="main_cpp">main.cpp</textarea><br><br>
          <input id="restoreFileInput" type='file' accept=".json" style="visibility:hidden;" onchange="readFile(event)" />
       </form>
    </div>

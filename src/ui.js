@@ -122,6 +122,7 @@ function processForm(form)
 	outputCtl.structure_handle_cpp.value = structure_handle_generator(form, od, indexes);
 	outputCtl.structure_handle_c.value = structure_handle_c_generator(form, od, indexes);
     outputCtl.ioctl_lan9252.value = ioctl_lan9252_generator(form, od, indexes);
+	outputCtl.main_cpp.value = main_generator(form, od, indexes);
 	outputCtl.HEX.hexData = hex_generator(form);
 	outputCtl.HEX.value = toIntelHex(outputCtl.HEX.hexData);
 	outputCtl.HEX.header = toEsiEepromH(outputCtl.HEX.hexData);

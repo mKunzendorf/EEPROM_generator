@@ -46,6 +46,7 @@ function downloadGeneratedFilesZipped(result, projectName) {
 	zip.file('structure_handle_cpp.h', result.structure_handle_cpp.value);
 	zip.file('structure_handle_c.h', result.structure_handle_c.value);
 	zip.file('ioctl_lan9252.h', result.ioctl_lan9252.value);
+	zip.file('main.cpp', result.main_cpp.value);
 	zip.file('esi.json', result.backupJson);
 
 	zip.generateAsync({type:"blob"}).then(function (blob) { // generate the zip file
@@ -65,5 +66,6 @@ function downloadGeneratedFiles(result, projectName) {
 	downloadFile(result.structure_handle_cpp.value, 'structure_handle_cpp.h', 'text/plain');
 	downloadFile(result.structure_handle_c.value, 'structure_handle_c.h', 'text/plain');
 	downloadFile(result.ioctl_lan9252.value, 'ioctl_lan9252.h', 'text/plain');
+	downloadFile(result.main_cpp.value, 'main.cpp', 'text/plain');
 	downloadBackupFile(result.backupJson);
 }

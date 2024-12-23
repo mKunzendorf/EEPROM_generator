@@ -36,22 +36,33 @@ function readFile(e) {
 
 function downloadGeneratedFilesZipped(result, projectName) {
 	const zip = new JSZip();
-	zip.file(`${projectName}.xml`, result.ESI.value);
-	zip.file('eeprom.hex', result.HEX.value);
-	zip.file('eeprom.bin', result.HEX.hexData);
-	zip.file('eeprom.h', result.HEX.header);
-	zip.file('ecat_options.h', result.ecat_options.value);
-	zip.file('objectlist.c', result.objectlist.value);
-	zip.file('utypes.h', result.utypes.value);
-	zip.file('structure_handle_cpp.h', result.structure_handle_cpp.value);
-	zip.file('structure_handle_c.h', result.structure_handle_c.value);
-	zip.file('ioctl_lan9252.h', result.ioctl_lan9252.value);
-	zip.file('main.cpp', result.main_cpp.value);
-	zip.file('test.c', result.test_c.value);
-	zip.file('esi.json', result.backupJson);
 
-	zip.generateAsync({type:"blob"}).then(function (blob) { // generate the zip file
-		downloadFile(blob, "esi.zip", "application/zip"); // trigger the download
+	// Add files to the 'config' folder
+	zip.file('config/esi.json', result.backupJson);
+
+	// Add files to the 'master' folder
+	zip.file(`master/${projectName}.xml`, result.ESI.value);
+
+	// Add files to the 'linux' folder
+	zip.file('linux/ioctl_lan9252.h', result.ioctl_lan9252.value);
+	zip.file('linux/structure_handle_c.h', result.structure_handle_c.value);
+	zip.file('linux/test.c', result.test_c.value);
+
+	// Add files to the 'cpp' folder
+	zip.file('cpp/main.cpp', result.main_cpp.value);
+	zip.file('cpp/structure_handle_cpp.h', result.structure_handle_cpp.value);
+
+	// Add files to the 'other' folder
+	zip.file('other/ecat_options.h', result.ecat_options.value);
+	zip.file('other/eeprom.bin', result.HEX.hexData);
+	zip.file('other/eeprom.hex', result.HEX.value);
+	zip.file('other/eeprom.h', result.HEX.header);
+	zip.file('other/objectlist.c', result.objectlist.value);
+	zip.file('other/utypes.h', result.utypes.value);
+
+	// Generate and download the zip file
+	zip.generateAsync({ type: "blob" }).then(function (blob) {
+		downloadFile(blob, "esi.zip", "application/zip");
 	}, function (err) {
 		console.log(err);
 	});

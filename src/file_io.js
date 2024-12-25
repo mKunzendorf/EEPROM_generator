@@ -46,11 +46,13 @@ function downloadGeneratedFilesZipped(result, projectName) {
 	// Add files to the 'linux' folder
 	zip.file('linux/ioctl_lan9252.h', result.ioctl_lan9252.value);
 	zip.file('linux/structure_handle_c.h', result.structure_handle_c.value);
-	zip.file('linux/test.c', result.test_c.value);
 
 	// Add files to the 'cpp' folder
-	zip.file('cpp/main.cpp', result.main_cpp.value);
 	zip.file('cpp/structure_handle_cpp.h', result.structure_handle_cpp.value);
+
+	// Add files to the 'testfiles' folder
+	zip.file('testfiles/main.cpp', result.main_cpp.value);
+	zip.file('testfiles/test.c', result.test_c.value);
 
 	// Add files to the 'other' folder
 	zip.file('other/ecat_options.h', result.ecat_options.value);

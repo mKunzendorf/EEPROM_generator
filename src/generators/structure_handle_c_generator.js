@@ -16,36 +16,36 @@ function structure_handle_c_generator(form, od, indexes) {
 `;
 
     // Define input_structure
-    let inputStruct = `struct input_structure {
-`;
-    indexes.forEach(index => {
-        const objd = od[index];
-        if (objd.pdo_mappings && objd.pdo_mappings.includes('txpdo')) {
-            const varName = variableName(objd.name);
-            const ctype = getCType(objd.dtype);
-            inputStruct += `    ${ctype} ${varName};
-`;
-        }
-    });
-    inputStruct += `};
+//    let inputStruct = `struct input_structure {
+//`;
+//    indexes.forEach(index => {
+//        const objd = od[index];
+//        if (objd.pdo_mappings && objd.pdo_mappings.includes('txpdo')) {
+//            const varName = variableName(objd.name);
+//            const ctype = getCType(objd.dtype);
+//            inputStruct += `    ${ctype} ${varName};
+//`;
+//        }
+//    });
+//    inputStruct += `};
 
-`;
+//`;
 
     // Define output_structure
-    let outputStruct = `struct output_structure {
-`;
-    indexes.forEach(index => {
-        const objd = od[index];
-        if (objd.pdo_mappings && objd.pdo_mappings.includes('rxpdo')) {
-            const varName = variableName(objd.name);
-            const ctype = getCType(objd.dtype);
-            outputStruct += `    ${ctype} ${varName};
-`;
-        }
-    });
-    outputStruct += `};
+//    let outputStruct = `struct output_structure {
+//`;
+//    indexes.forEach(index => {
+//        const objd = od[index];
+//        if (objd.pdo_mappings && objd.pdo_mappings.includes('rxpdo')) {
+//            const varName = variableName(objd.name);
+//            const ctype = getCType(objd.dtype);
+//            outputStruct += `    ${ctype} ${varName};
+//`;
+//        }
+//    });
+//    outputStruct += `};
 
-`;
+//`;
 
     // Extern declarations and mutexes
     let externDeclarations = `
@@ -94,9 +94,7 @@ extern struct mutex ethercat_output_structure_mutex;
     let ioctlFunc = `static long int lan9252_ioctl(struct file *file, unsigned cmd, unsigned long arg){
 
     switch(cmd){
-`;
-    // Common cases
-    ioctlFunc += `        case WR_VALUE:
+        case WR_VALUE:
             mutex_lock(&ethercat_input_structure_mutex);
             if(copy_from_user(&ethercat_input_structure, (struct input_structure *) arg, sizeof(ethercat_input_structure)))
                 printk("ioctl - Error copying data from user!\\n");
@@ -112,13 +110,13 @@ extern struct mutex ethercat_output_structure_mutex;
 
 `;
 
-    // Generate write cases for input_structure variables
-    indexes.forEach((index, idx) => {
+    // Generate individual IOCTL cases
+    indexes.forEach(index => {
         const objd = od[index];
-        if (objd.pdo_mappings && objd.pdo_mappings.includes('txpdo')) {
-            const varName = variableName(objd.name);
-            const caseName = `WR_VALUE_${varName.toUpperCase()}`;
-            ioctlFunc += `        case ${caseName}:
+        if (objd.pdo_mappings) {
+            const varName = objd.name; // Use original name from esi.json (PascalCase)
+            if (objd.pdo_mappings.includes('txpdo')) {
+                ioctlFunc += `        case WR_VALUE_${varName.toUpperCase()}:
             mutex_lock(&ethercat_input_structure_mutex);
             if(copy_from_user(&ethercat_input_structure.${varName}, (${getCType(objd.dtype)} *) arg, sizeof(ethercat_input_structure.${varName})))
                 printk("ioctl - Error copying data from user!\\n");
@@ -126,16 +124,8 @@ extern struct mutex ethercat_output_structure_mutex;
             break;
 
 `;
-        }
-    });
-
-    // Generate read cases for output_structure variables
-    indexes.forEach((index, idx) => {
-        const objd = od[index];
-        if (objd.pdo_mappings && objd.pdo_mappings.includes('rxpdo')) {
-            const varName = variableName(objd.name);
-            const caseName = `RD_VALUE_${varName.toUpperCase()}`;
-            ioctlFunc += `        case ${caseName}:
+            } else if (objd.pdo_mappings.includes('rxpdo')) {
+                ioctlFunc += `        case RD_VALUE_${varName.toUpperCase()}:
             mutex_lock(&ethercat_output_structure_mutex);
             if(copy_to_user((${getCType(objd.dtype)} *) arg, &ethercat_output_structure.${varName}, sizeof(ethercat_output_structure.${varName})))
                 printk("ioctl - Error copying data to user!\\n");
@@ -143,6 +133,7 @@ extern struct mutex ethercat_output_structure_mutex;
             break;
 
 `;
+            }
         }
     });
 
@@ -158,8 +149,8 @@ extern struct mutex ethercat_output_structure_mutex;
     let footer = `#endif // STRUCTURE_HANDLE_C_H
 `;
 
-    // Combine all parts
-    header += inputStruct + outputStruct + externDeclarations + inputDataHandleFunc + outputDataHandleFunc + ioctlFunc + footer;
+    // Combine all parts - remove inputStruct and outputStruct from concatenation
+    header += externDeclarations + inputDataHandleFunc + outputDataHandleFunc + ioctlFunc + footer;
 
     return header;
 

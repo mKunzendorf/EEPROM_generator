@@ -32,8 +32,8 @@ function ioctl_lan9252_generator(form, od, indexes) {
 `;
     indexes.forEach(index => {
         const objd = od[index];
-        if (objd.pdo_mappings && objd.pdo_mappings.includes(txpdo)) {
-            const varName = variableName(objd.name);
+        if (objd.pdo_mappings && objd.pdo_mappings.includes('txpdo')) {
+            const varName = objd.name;
             const ctype = getCType(objd.dtype);
             inputStruct += `    ${ctype} ${varName};
 `;
@@ -48,8 +48,8 @@ function ioctl_lan9252_generator(form, od, indexes) {
 `;
     indexes.forEach(index => {
         const objd = od[index];
-        if (objd.pdo_mappings && objd.pdo_mappings.includes(rxpdo)) {
-            const varName = variableName(objd.name);
+        if (objd.pdo_mappings && objd.pdo_mappings.includes('rxpdo')) {
+            const varName = objd.name;
             const ctype = getCType(objd.dtype);
             outputStruct += `    ${ctype} ${varName};
 `;
@@ -67,19 +67,17 @@ function ioctl_lan9252_generator(form, od, indexes) {
 
     // Generate individual IOCTL commands for each field
     let ioctlCommands = '';
-    let ioctlCode = 128; // Starting code (adjust as needed)
+    let ioctlCode = 128; // Starting code
     indexes.forEach(index => {
         const objd = od[index];
         if (objd.pdo_mappings) {
-            const varName = variableName(objd.name);
-            const upperVarName = varName.toUpperCase();
-            const ctype = getCType(objd.dtype) + ' *';
-            if (objd.pdo_mappings.includes(txpdo)) {
-                ioctlCommands += `#define WR_VALUE_${upperVarName} _IOW('a', ${ioctlCode}, ${ctype})
+            const varName = objd.name;
+            if (objd.pdo_mappings.includes('txpdo')) {
+                ioctlCommands += `#define WR_VALUE_${varName.toUpperCase()} _IOW('a', ${ioctlCode}, ${getCType(objd.dtype)} *)
 `;
                 ioctlCode++;
-            } else if (objd.pdo_mappings.includes(rxpdo)) {
-                ioctlCommands += `#define RD_VALUE_${upperVarName} _IOR('a', ${ioctlCode}, ${ctype})
+            } else if (objd.pdo_mappings.includes('rxpdo')) {
+                ioctlCommands += `#define RD_VALUE_${varName.toUpperCase()} _IOR('a', ${ioctlCode}, ${getCType(objd.dtype)} *)
 `;
                 ioctlCode++;
             }

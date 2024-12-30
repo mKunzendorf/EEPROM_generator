@@ -54,32 +54,37 @@ function test_program_generator(form, od, indexes) {
 
     // Variable declarations
     code += '    // Variable declarations\n';
-    odList.forEach((variable) => {
-        if (variable.pdo_mappings) {
-            const varName = variable.name.toLowerCase(); // Use lowercase to match ioctl_lan9252.h
-            const varType = getCTypeFromDtype(variable.dtype);
-            code += `    ${varType} ${varName};\n`;
-        }
-    });
-    code += '\n';
-
-    // Start of infinite loop
-    code += '    while (1) {\n';
-
-    // Write to variables that are inputs (e.g., testinput_N)
+    
+    // First declare all output variables
     odList.forEach((variable) => {
         if (variable.pdo_mappings) {
             const varName = variable.name.toLowerCase();
-            const ioctlName = `WR_VALUE_${varName.toUpperCase()}`;
-            if (varName.startsWith('testinput_')) {
-                code += `        ioctl(dev, ${ioctlName}, &${varName});\n`;
+            if (varName.startsWith('testoutput_')) {
+                const cType = getCTypeFromDtype(variable.dtype);
+                code += `    ${cType} ${varName};\n`;
             }
         }
     });
 
     code += '\n';
 
-    // Read from variables that are outputs (e.g., testoutput_N)
+    // Then declare all input variables
+    odList.forEach((variable) => {
+        if (variable.pdo_mappings) {
+            const varName = variable.name.toLowerCase();
+            if (varName.startsWith('testinput_')) {
+                const cType = getCTypeFromDtype(variable.dtype);
+                code += `    ${cType} ${varName};\n`;
+            }
+        }
+    });
+
+    code += '\n';
+
+    // Start of infinite loop
+    code += '    while (1) {\n';
+
+    // First read from variables that are outputs (e.g., testoutput_N)
     odList.forEach((variable) => {
         if (variable.pdo_mappings) {
             const varName = variable.name.toLowerCase();
@@ -92,6 +97,18 @@ function test_program_generator(form, od, indexes) {
 
     code += '\n';
 
+    // Then write to variables that are inputs (e.g., testinput_N)
+    odList.forEach((variable) => {
+        if (variable.pdo_mappings) {
+            const varName = variable.name.toLowerCase();
+            const ioctlName = `WR_VALUE_${varName.toUpperCase()}`;
+            if (varName.startsWith('testinput_')) {
+                code += `        ioctl(dev, ${ioctlName}, &${varName});\n`;
+            }
+        }
+    });
+
+    code += '\n';
     code += '        nanosleep(&req, NULL);\n';
     code += '    }\n';
     code += '    return NULL;\n';

@@ -27,6 +27,7 @@
    <script src="src/generators/utypes.js"></script>   
    <script src="src/generators/structure_handle_generator.js"></script>
    <script src="src/generators/structure_handle_c_generator.js"></script>
+   <script src="src/generators/structure_handle_generator_cpp.js"></script>
    <script src="src/generators/ioctl_lan9252_generator.js"></script>
    <script src="src/generators/main_generator.js"></script>
    <script src="src/generators/test_program_generator.js"></script>
@@ -467,6 +468,14 @@
          </button>
          <br>
          <textarea cols="150" rows="12" name="test_c">test.c</textarea><br><br>
+         structure_handle_cpp.cpp:
+         <button name="Download_structure_handle_cpp_cpp"
+            onClick="downloadFile(getOutputForm().structure_handle_cpp_cpp.value, 'structure_handle_cpp.cpp', 'text/plain');">
+            🔽 &nbsp; Download &nbsp;
+         </button>
+         <br>
+         <textarea cols="150" rows="12" name="structure_handle_cpp_cpp">structure_handle_cpp.cpp</textarea>
+         <br><br>
          <input id="restoreFileInput" type='file' accept=".json" style="visibility:hidden;" onchange="readFile(event)" />
       </form>
    </div>

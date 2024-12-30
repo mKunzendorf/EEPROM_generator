@@ -49,6 +49,7 @@ function downloadGeneratedFilesZipped(result, projectName) {
 
 	// Add files to the 'cpp' folder
 	zip.file('cpp/structure_handle_cpp.h', result.structure_handle_cpp.value);
+	zip.file('cpp/structure_handle_cpp.cpp', result.structure_handle_cpp_cpp.value);
 
 	// Add files to the 'testfiles' folder
 	zip.file('testfiles/main.cpp', result.main_cpp.value);

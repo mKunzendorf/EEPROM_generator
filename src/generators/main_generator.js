@@ -12,6 +12,11 @@ function main_generator(form, od, indexes) {
 
 // Define the LED pin
 const int LED_PIN = 25;  // Replace with your board's LED pin
+const int SYNC0_PIN = 4; // GPIO4
+const int SYNC1_PIN = 5; // GPIO5
+
+volatile uint16_t sync0_counter = 0;
+volatile uint16_t sync1_counter = 0;
 
 // Create instances of the structures
 input_structure inputData;
@@ -35,9 +40,24 @@ void blinkLEDNonBlocking() {
     }
 }
 
+void sync0_ISR() {
+    sync0_counter++;
+}
+
+void sync1_ISR() {
+    sync1_counter++;
+}
+
 void setup() {
     // Initialize the LED pin
     pinMode(LED_PIN, OUTPUT);
+    pinMode(SYNC0_PIN, INPUT_PULLUP); // Use INPUT_PULLUP or adjust based on your circuit
+    pinMode(SYNC1_PIN, INPUT_PULLUP);
+
+    // Attach interrupts to SYNC0 and SYNC1 pins
+    attachInterrupt(digitalPinToInterrupt(SYNC0_PIN), sync0_ISR, FALLING);
+    attachInterrupt(digitalPinToInterrupt(SYNC1_PIN), sync1_ISR, FALLING);
+
 
     // Simplified initialization
     lan9252.begin(outputData, inputData);

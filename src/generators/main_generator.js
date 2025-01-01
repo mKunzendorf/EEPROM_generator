@@ -19,8 +19,8 @@ volatile uint16_t sync0_counter = 0;
 volatile uint16_t sync1_counter = 0;
 
 // Create instances of the structures
-input_structure inputData;
-output_structure outputData;
+input_structure tx_data;
+output_structure rx_data;
 
 // Create an instance of LAN9252
 LAN9252 lan9252;
@@ -58,15 +58,14 @@ void setup() {
     attachInterrupt(digitalPinToInterrupt(SYNC0_PIN), sync0_ISR, FALLING);
     attachInterrupt(digitalPinToInterrupt(SYNC1_PIN), sync1_ISR, FALLING);
 
-
-    // Simplified initialization
-    lan9252.begin(outputData, inputData);
+    lan9252.begin(&rx_data, &tx_data);
 }
 
 void loop() {
-    // Call the non-blocking LED blink function
     blinkLEDNonBlocking();
-
+    lan9252.read_all(rx_data);
+    // use data from output_structure_data and set input_structure_data
+    lan9252.write_all(tx_data);
 `;
 
     // Get lists of input and output variables
@@ -84,25 +83,6 @@ void loop() {
         }
     });
 
-    // Generate code to read outputs
-    code += '\n    // Read EtherCAT outputs\n';
-    outputVars.forEach(varName => {
-        code += `    lan9252.getOutputValue(outputData.${varName});\n`;
-    });
-
-    // Generate code to write inputs
-    code += '\n    // Write to EtherCAT inputs\n';
-    inputVars.forEach(varName => {
-        // Check if there is a corresponding output variable with similar name
-        let matchingOutput = outputVars.find(outVar => areNamesMatching(varName, outVar));
-        if (matchingOutput) {
-            // Loop back output to input
-            code += `    inputData.${varName} = outputData.${matchingOutput};\n`;
-        } else {
-            // Set input value (you can customize this as needed)
-            code += `    lan9252.setInputValue(inputData.${varName});\n`;
-        }
-    });
 
     code += '}\n';
 

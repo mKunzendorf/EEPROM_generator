@@ -14,9 +14,33 @@ function structure_handle_generator(form, od, indexes) {
 
 #include <cstdint>
 
-#pragma pack(push, 1)  // Align structures to 1-byte boundaries
-
 `;
+
+    // Calculate input structure size
+    let inputSize = 0;
+    indexes.forEach(index => {
+        const objd = od[index];
+        if (objd.pdo_mappings && objd.pdo_mappings.includes(txpdo)) {
+            inputSize += getTypeSize(objd.dtype);
+        }
+    });
+    // Round up to nearest 4 bytes
+    const inputSizeAligned = Math.ceil(inputSize / 4) * 4;
+
+    // Calculate output structure size
+    let outputSize = 0;
+    indexes.forEach(index => {
+        const objd = od[index];
+        if (objd.pdo_mappings && objd.pdo_mappings.includes(rxpdo)) {
+            outputSize += getTypeSize(objd.dtype);
+        }
+    });
+    // Round up to nearest 4 bytes
+    const outputSizeAligned = Math.ceil(outputSize / 4) * 4;
+
+    // Add size constants before structures
+    header += `constexpr uint32_t input_structure_bytes = ${inputSizeAligned};\n`;
+    header += `constexpr uint32_t output_structure_bytes = ${outputSizeAligned};\n\n`;
 
     // Define input_structure
     let inputStruct = `struct input_structure {\n`;
@@ -44,7 +68,10 @@ function structure_handle_generator(form, od, indexes) {
 
     // Close the header file
     header += inputStruct + outputStruct;
-    header += `#pragma pack(pop)      // Restore default alignment
+    //header += `#pragma pack(pop)      // Restore default alignment
+    header += `void copyOutputDataToStructure(uint8_t* outputData, output_structure& output_structure_data);
+void copyStructureToInputData(const input_structure& input_structure_data, uint8_t* inputData);
+
 
 #endif  // STRUCTURE_HANDLE_CPP_H
 `;
@@ -66,6 +93,28 @@ function structure_handle_generator(form, od, indexes) {
             case DTYPE.REAL64: return 'double';
             // Add more cases as needed
             default: return 'uint32_t'; // Default type
+        }
+    }
+
+    // Helper function to get size of data type in bytes
+    function getTypeSize(dtype) {
+        switch (dtype) {
+            case DTYPE.UNSIGNED8:
+            case DTYPE.INTEGER8:
+                return 1;
+            case DTYPE.UNSIGNED16:
+            case DTYPE.INTEGER16:
+                return 2;
+            case DTYPE.UNSIGNED32:
+            case DTYPE.INTEGER32:
+            case DTYPE.REAL32:
+                return 4;
+            case DTYPE.UNSIGNED64:
+            case DTYPE.INTEGER64:
+            case DTYPE.REAL64:
+                return 8;
+            default:
+                return 4; // Default size
         }
     }
 } 

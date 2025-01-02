@@ -13,6 +13,7 @@ function structure_handle_generator(form, od, indexes) {
 #define STRUCTURE_HANDLE_CPP_H
 
 #include <cstdint>
+#include <cstddef>  
 
 `;
 
@@ -39,8 +40,9 @@ function structure_handle_generator(form, od, indexes) {
     const outputSizeAligned = Math.ceil(outputSize / 4) * 4;
 
     // Add size constants before structures
-    header += `constexpr uint32_t input_structure_bytes = ${inputSizeAligned};\n`;
-    header += `constexpr uint32_t output_structure_bytes = ${outputSizeAligned};\n\n`;
+    header += `constexpr size_t input_structure_bytes = ${inputSizeAligned};\n`;
+    header += `constexpr size_t output_structure_bytes = ${outputSizeAligned};\n`;
+    header += `constexpr bool use_crc = ${form.DetailsEnableCRC.checked};\n\n`;
 
     // Define input_structure
     let inputStruct = `struct input_structure {\n`;
@@ -91,7 +93,7 @@ void copyStructureToInputData(const input_structure& input_structure_data, uint8
             case DTYPE.INTEGER64: return 'int64_t';
             case DTYPE.REAL32: return 'float';
             case DTYPE.REAL64: return 'double';
-            // Add more cases as needed
+            case DTYPE.BOOLEAN: return 'bool';
             default: return 'uint32_t'; // Default type
         }
     }
@@ -101,6 +103,7 @@ void copyStructureToInputData(const input_structure& input_structure_data, uint8
         switch (dtype) {
             case DTYPE.UNSIGNED8:
             case DTYPE.INTEGER8:
+            case DTYPE.BOOLEAN:
                 return 1;
             case DTYPE.UNSIGNED16:
             case DTYPE.INTEGER16:

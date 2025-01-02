@@ -10,13 +10,21 @@ function structure_handle_generator_cpp(form, od, indexes) {
     code += 'void copyOutputDataToStructure(uint8_t* outputData, output_structure& output_structure_data) {\n';
 
     let offset = 0;
+    let bitOffset = 0;
     odList.forEach((variable) => {
         if (variable.pdo_mappings) {
             const varName = variable.name;
-            const dataTypeSize = getSizeFromDtype(variable.dtype);
+            const dtype = variable.dtype.toUpperCase();
+            const dataTypeSize = getSizeFromDtype(dtype);
+            
             if (varName.startsWith('TestOutput_')) {
-                code += `    memcpy(&output_structure_data.${varName}, &outputData[${offset}], ${dataTypeSize});\n`;
-                offset += dataTypeSize;
+                if (dtype === 'BOOLEAN') {
+                    code += `    output_structure_data.${varName} = outputData[${offset}] & 0x01;\n`;
+                    offset += 1;  // Move to next byte for each boolean
+                } else {
+                    code += `    memcpy(&output_structure_data.${varName}, &outputData[${offset}], ${dataTypeSize});\n`;
+                    offset += dataTypeSize;
+                }
             }
         }
     });
@@ -26,13 +34,21 @@ function structure_handle_generator_cpp(form, od, indexes) {
     code += 'void copyStructureToInputData(const input_structure& input_structure_data, uint8_t* inputData) {\n';
 
     offset = 0;
+    bitOffset = 0;
     odList.forEach((variable) => {
         if (variable.pdo_mappings) {
             const varName = variable.name;
-            const dataTypeSize = getSizeFromDtype(variable.dtype);
+            const dtype = variable.dtype.toUpperCase();
+            const dataTypeSize = getSizeFromDtype(dtype);
+            
             if (varName.startsWith('TestInput_')) {
-                code += `    memcpy(&inputData[${offset}], &input_structure_data.${varName}, ${dataTypeSize});\n`;
-                offset += dataTypeSize;
+                if (dtype === 'BOOLEAN') {
+                    code += `    inputData[${offset}] = input_structure_data.${varName} ? 1 : 0;\n`;
+                    offset += 1;  // Move to next byte for each boolean
+                } else {
+                    code += `    memcpy(&inputData[${offset}], &input_structure_data.${varName}, ${dataTypeSize});\n`;
+                    offset += dataTypeSize;
+                }
             }
         }
     });

@@ -9,7 +9,7 @@ function structure_handle_generator_cpp(form, od, indexes) {
     // Function to copy output data to structure
     code += 'void copyOutputDataToStructure(uint8_t* outputData, output_structure& output_structure_data) {\n';
 
-    let offset = 0;
+    let offset = form.DetailsEnableCRC.checked ? 4 : 0;
     let bitOffset = 0;
     odList.forEach((variable) => {
         if (variable.pdo_mappings) {
@@ -33,6 +33,7 @@ function structure_handle_generator_cpp(form, od, indexes) {
     // Function to copy structure to input data
     code += 'void copyStructureToInputData(const input_structure& input_structure_data, uint8_t* inputData) {\n';
 
+    //offset = form.DetailsEnableCRC.checked ? 8 : 0;
     offset = 0;
     bitOffset = 0;
     odList.forEach((variable) => {

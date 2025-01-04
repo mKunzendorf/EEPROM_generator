@@ -42,16 +42,22 @@ function structure_handle_generator(form, od, indexes) {
     // Add size constants before structures
     header += `constexpr size_t input_structure_bytes = ${inputSizeAligned};\n`;
     header += `constexpr size_t output_structure_bytes = ${outputSizeAligned};\n`;
-    header += `constexpr bool use_crc = ${form.DetailsEnableCRC.checked};\n\n`;
+    header += `constexpr bool use_crc = ${form.DetailsEnableCRC.checked};\n`;
+    header += `constexpr size_t input_crc_boundary = ${inputSize+3};\n`;
+    header += `constexpr size_t output_crc_boundary = ${outputSize};\n\n`;
+    
 
     // Define input_structure
     let inputStruct = `struct input_structure {\n`;
     indexes.forEach(index => {
         const objd = od[index];
         if (objd.pdo_mappings && objd.pdo_mappings.includes(txpdo)) {
-            const varName = variableName(objd.name);
-            const ctype = getCType(objd.dtype);
-            inputStruct += `    ${ctype} ${varName};\n`;
+            // Only skip CRC fields if CRC is enabled
+            if (!form.DetailsEnableCRC.checked || !objd.name.toLowerCase().includes('crc')) {
+                const varName = variableName(objd.name);
+                const ctype = getCType(objd.dtype);
+                inputStruct += `    ${ctype} ${varName};\n`;
+            }
         }
     });
     inputStruct += `};\n\n`;
@@ -61,9 +67,12 @@ function structure_handle_generator(form, od, indexes) {
     indexes.forEach(index => {
         const objd = od[index];
         if (objd.pdo_mappings && objd.pdo_mappings.includes(rxpdo)) {
-            const varName = variableName(objd.name);
-            const ctype = getCType(objd.dtype);
-            outputStruct += `    ${ctype} ${varName};\n`;
+            // Only skip CRC fields if CRC is enabled
+            if (!form.DetailsEnableCRC.checked || !objd.name.toLowerCase().includes('crc')) {
+                const varName = variableName(objd.name);
+                const ctype = getCType(objd.dtype);
+                outputStruct += `    ${ctype} ${varName};\n`;
+            }
         }
     });
     outputStruct += `};\n\n`;

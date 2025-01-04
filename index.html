@@ -491,4 +491,16 @@
          <input id="restoreFileInput" type='file' accept=".json" style="visibility:hidden;" onchange="readFile(event)" />
       </form>
    </div>
+
+   <script>
+      // Handle CRC checkbox changes
+      document.querySelector('input[name="DetailsEnableCRC"]').addEventListener('change', function(e) {
+          onCrcCheckboxChanged();
+      });
+
+      // Monitor form changes
+      document.getElementById('SlaveForm').addEventListener('change', function(e) {
+          onFormChanged();
+      });
+   </script>
 </body>

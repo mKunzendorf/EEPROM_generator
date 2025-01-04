@@ -121,20 +121,77 @@ function getSM2_MappingOffset(form) {
 function addRXPDOitems(form, odSections, od, booleanPaddingCount) {
 	const rxpdoSection = odSections.rxpdo;
 	const pdo = {
-		name : rxpdo,
-		SMassignmentIndex : '1C12',
-		smOffset : getSM2_MappingOffset(form), // usually 0x1400
+		name: rxpdo,
+		SMassignmentIndex: '1C12',
+		smOffset: getSM2_MappingOffset(form),
 	};
+
+	// Add CRC entries if enabled
+	if (form.DetailsEnableCRC.checked) {
+		const crcEntry = {
+			otype: "VAR",
+			name: "crc_output",
+			access: "RO",
+			dtype: "UNSIGNED32",
+			pdo_mappings: ["rxpdo"],
+			value: "0",
+			data: "&Obj.crc_output"
+		};
+		addObject(od, crcEntry, "7000");
+		
+		// Adjust section to start after CRC entries
+		const adjustedSection = {};
+		Object.entries(rxpdoSection).forEach(([key, value]) => {
+			const newKey = (parseInt(key, 16) + 1).toString(16).padStart(4, '0').toUpperCase();
+			adjustedSection[newKey] = value;
+		});
+		return addPdoObjectsSection(od, adjustedSection, pdo, booleanPaddingCount);
+	}
+
 	return addPdoObjectsSection(od, rxpdoSection, pdo, booleanPaddingCount);
 }
 /** Takes OD entries from UI TXPDO section and adds to given OD */
 function addTXPDOitems(form, odSections, od, booleanPaddingCount) {
 	const txpdoSection = odSections.txpdo;
 	const pdo = {
-		name : txpdo,
-		SMassignmentIndex : '1C13',
-		smOffset : parseInt(form.SM3Offset.value), // usually 0x1A00
+		name: txpdo,
+		SMassignmentIndex: '1C13',
+		smOffset: parseInt(form.SM3Offset.value),
 	};
+
+	// Add CRC entries if enabled
+	if (form.DetailsEnableCRC.checked) {
+		const crcInput = {
+			otype: "VAR",
+			name: "crc_input",
+			access: "RO",
+			dtype: "UNSIGNED32",
+			pdo_mappings: ["txpdo"],
+			value: "0",
+			data: "&Obj.crc_input"
+		};
+		const crcErrors = {
+			otype: "VAR",
+			name: "crc_errors",
+			access: "RO",
+			dtype: "UNSIGNED32",
+			pdo_mappings: ["txpdo"],
+			value: "0",
+			data: "&Obj.crc_errors"
+		};
+		
+		addObject(od, crcInput, "6000");
+		addObject(od, crcErrors, "6001");
+
+		// Adjust section to start after CRC entries
+		const adjustedSection = {};
+		Object.entries(txpdoSection).forEach(([key, value]) => {
+			const newKey = (parseInt(key, 16) + 2).toString(16).padStart(4, '0').toUpperCase();
+			adjustedSection[newKey] = value;
+		});
+		return addPdoObjectsSection(od, adjustedSection, pdo, booleanPaddingCount);
+	}
+
 	return addPdoObjectsSection(od, txpdoSection, pdo, booleanPaddingCount);
 }
 
@@ -282,6 +339,98 @@ function populateMandatoryObjectValues(form, od) {
 function buildObjectDictionary(form, odSections) {
 	const od = getMandatoryObjects();
 	populateMandatoryObjectValues(form, od);
+
+	if (form.DetailsEnableCRC.checked) {
+		// Create new section objects
+		const newTxPdo = {};
+		const newRxPdo = {};
+
+		// Add CRC entries first if they don't already exist
+		if (!odSections.txpdo["6000"] || odSections.txpdo["6000"].name !== "crc_input") {
+			newTxPdo["6000"] = {
+				otype: "VAR",
+				name: "crc_input",
+				access: "RO",
+				dtype: "UNSIGNED32",
+				pdo_mappings: ["txpdo"],
+				value: "0",
+				data: "&Obj.crc_input"
+			};
+		} else {
+			newTxPdo["6000"] = odSections.txpdo["6000"];
+		}
+
+		if (!odSections.txpdo["6001"] || odSections.txpdo["6001"].name !== "crc_errors") {
+			newTxPdo["6001"] = {
+				otype: "VAR",
+				name: "crc_errors",
+				access: "RO",
+				dtype: "UNSIGNED32",
+				pdo_mappings: ["txpdo"],
+				value: "0",
+				data: "&Obj.crc_errors"
+			};
+		} else {
+			newTxPdo["6001"] = odSections.txpdo["6001"];
+		}
+
+		if (!odSections.rxpdo["7000"] || odSections.rxpdo["7000"].name !== "crc_output") {
+			newRxPdo["7000"] = {
+				otype: "VAR",
+				name: "crc_output",
+				access: "RO",
+				dtype: "UNSIGNED32",
+				pdo_mappings: ["rxpdo"],
+				value: "0",
+				data: "&Obj.crc_output"
+			};
+		} else {
+			newRxPdo["7000"] = odSections.rxpdo["7000"];
+		}
+
+		// Add existing entries with fixed offset after CRC entries
+		Object.entries(odSections.txpdo)
+			.filter(([key, value]) => !value.name.startsWith("crc_"))
+			.forEach(([key, value], index) => {
+				const newKey = (0x6002 + index).toString(16).padStart(4, '0').toUpperCase();
+				newTxPdo[newKey] = value;
+			});
+
+		Object.entries(odSections.rxpdo)
+			.filter(([key, value]) => !value.name.startsWith("crc_"))
+			.forEach(([key, value], index) => {
+				const newKey = (0x7001 + index).toString(16).padStart(4, '0').toUpperCase();
+				newRxPdo[newKey] = value;
+			});
+
+		// Replace the sections with our new ones
+		odSections.txpdo = newTxPdo;
+		odSections.rxpdo = newRxPdo;
+	} else {
+		// CRC is disabled - remove CRC entries and adjust indices back
+		const newTxPdo = {};
+		const newRxPdo = {};
+
+		// Add existing entries with adjusted indices, excluding CRC entries
+		Object.entries(odSections.txpdo)
+			.filter(([key, value]) => !value.name.startsWith("crc_"))
+			.forEach(([key, value], index) => {
+				const newKey = (0x6000 + index).toString(16).padStart(4, '0').toUpperCase();
+				newTxPdo[newKey] = value;
+			});
+
+		Object.entries(odSections.rxpdo)
+			.filter(([key, value]) => !value.name.startsWith("crc_"))
+			.forEach(([key, value], index) => {
+				const newKey = (0x7000 + index).toString(16).padStart(4, '0').toUpperCase();
+				newRxPdo[newKey] = value;
+			});
+
+		// Replace the sections with our new ones
+		odSections.txpdo = newTxPdo;
+		odSections.rxpdo = newRxPdo;
+	}
+
 	// populate custom objects
 	addSDOitems(odSections, od);
 	let booleanPaddingCount = addTXPDOitems(form, odSections, od, 0);
@@ -427,4 +576,107 @@ function setArrayLength(objd, newLength) {
 	while (objd.items.length < size) { 
 		objd.items.push(getNewArraySubitem(objd, objd.dtype));
 	}
+}
+
+// Add this function to handle CRC entries
+function getCrcEntries(pdo_type) {
+	if (pdo_type === 'txpdo') {
+		return {
+			"6000": {
+				"otype": "VAR",
+				"name": "crc_input",
+				"access": "RO",
+				"dtype": "UNSIGNED32",
+				"pdo_mappings": ["txpdo"],
+				"value": "0",
+				"data": "&Obj.crc_input"
+			},
+			"6001": {
+				"otype": "VAR",
+				"name": "crc_errors",
+				"access": "RO",
+				"dtype": "UNSIGNED32",
+				"pdo_mappings": ["txpdo"],
+				"value": "0",
+				"data": "&Obj.crc_errors"
+			}
+		};
+	} else if (pdo_type === 'rxpdo') {
+		return {
+			"7000": {
+				"otype": "VAR",
+				"name": "crc_output",
+				"access": "RO",
+				"dtype": "UNSIGNED32",
+				"pdo_mappings": ["rxpdo"],
+				"value": "0",
+				"data": "&Obj.crc_output"
+			}
+		};
+	}
+	return {};
+}
+
+// Modify the function that generates/updates PDO entries
+function updatePdoIndices(pdo_type) {
+	const entries = odSections[pdo_type];
+	const baseIndex = pdo_type === 'txpdo' ? 0x6000 : 0x7000;
+	
+	// Create new object to store reindexed entries
+	const newEntries = {};
+	
+	// Declare startIndex variable
+	let startIndex = 0;
+	
+	// Add CRC entries first if enabled
+	if (getForm().DetailsEnableCRC.checked) {
+		Object.assign(newEntries, getCrcEntries(pdo_type));
+		startIndex = Object.keys(getCrcEntries(pdo_type)).length;
+	}
+	
+	// Reindex existing entries
+	Object.values(entries).forEach((entry, i) => {
+		if (!entry.name.startsWith('crc_')) { // Skip existing CRC entries if any
+			const newIndex = (baseIndex + startIndex + i).toString(16).padStart(4, '0');
+			newEntries[newIndex] = {...entry};
+		}
+	});
+	
+	// Update the odSections
+	odSections[pdo_type] = newEntries;
+}
+
+// Add this to handle CRC checkbox changes and refresh the display
+function onCrcCheckboxChanged() {
+	try {
+		// Update both PDO sections
+		updatePdoIndices('txpdo');
+		updatePdoIndices('rxpdo');
+		
+		// Reload the UI
+		reloadOD_Sections();
+		
+		// Force form update
+		onFormChanged();
+		
+	} catch (error) {
+		console.error('Error in onCrcCheckboxChanged:', error);
+	}
+}
+
+function updatePdoDisplay(elementId, pdoSection) {
+	const container = document.getElementById(elementId);
+	if (!container) {
+		console.error(`Element with ID ${elementId} not found`);
+		return;
+	}
+	
+	container.innerHTML = ''; // Clear existing content
+
+	Object.entries(pdoSection).forEach(([key, value]) => {
+		const entry = document.createElement('div');
+		entry.innerHTML = `<span>${key}</span>: <span>${value.name}</span> ${value.dtype}`;
+		container.appendChild(entry);
+	});
+	window.location.reload(); 
 }

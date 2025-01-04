@@ -625,22 +625,27 @@ function updatePdoIndices(pdo_type) {
 	// Create new object to store reindexed entries
 	const newEntries = {};
 	
-	// Declare startIndex variable
-	let startIndex = 0;
+	// Get non-CRC entries first
+	const nonCrcEntries = Object.entries(entries).filter(([_, value]) => 
+		!value.name.startsWith('crc_')
+	);
 	
-	// Add CRC entries first if enabled
+	// Add CRC entries if enabled
 	if (getForm().DetailsEnableCRC.checked) {
 		Object.assign(newEntries, getCrcEntries(pdo_type));
-		startIndex = Object.keys(getCrcEntries(pdo_type)).length;
-	}
-	
-	// Reindex existing entries
-	Object.values(entries).forEach((entry, i) => {
-		if (!entry.name.startsWith('crc_')) { // Skip existing CRC entries if any
-			const newIndex = (baseIndex + startIndex + i).toString(16).padStart(4, '0');
+		// Start regular entries after CRC entries
+		nonCrcEntries.forEach(([_, entry], i) => {
+			const newIndex = (baseIndex + Object.keys(getCrcEntries(pdo_type)).length + i)
+				.toString(16).padStart(4, '0');
 			newEntries[newIndex] = {...entry};
-		}
-	});
+		});
+	} else {
+		// Without CRC, start from base index
+		nonCrcEntries.forEach(([_, entry], i) => {
+			const newIndex = (baseIndex + i).toString(16).padStart(4, '0');
+			newEntries[newIndex] = {...entry};
+		});
+	}
 	
 	// Update the odSections
 	odSections[pdo_type] = newEntries;

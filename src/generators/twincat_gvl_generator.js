@@ -12,8 +12,8 @@ function twincat_gvl_generator(form, od, indexes, tcmod) {
     // Generate a GVL file for each module
     tcmod.forEach(module => {
         // First pass: collect all variables and find longest name
-        const inputs = [];
-        const outputs = [];
+        const inputs = new Map();  // Use Map to prevent duplicates
+        const outputs = new Map();
         let maxLength = 0;
         
         indexes.forEach(index => {
@@ -24,10 +24,10 @@ function twincat_gvl_generator(form, od, indexes, tcmod) {
                 const varType = getTwinCatDataType(objd.dtype.toUpperCase());
                 
                 if (objd.pdo_mappings.includes('txpdo')) {
-                    inputs.push({ name: varName, type: varType });
+                    inputs.set(varName, varType);  // Map will automatically handle duplicates
                 }
                 if (objd.pdo_mappings.includes('rxpdo')) {
-                    outputs.push({ name: varName, type: varType });
+                    outputs.set(varName, varType);
                 }
             }
         });
@@ -39,8 +39,8 @@ VAR_GLOBAL
 `;
         
         // Add input variables with padding
-        inputs.forEach(input => {
-            code += `    ${input.name} AT%I*\t: ${input.type};\n`;
+        inputs.forEach((type, name) => {
+            code += `    ${name} AT%I*\t: ${type};\n`;
         });
         
         code += `
@@ -48,8 +48,8 @@ VAR_GLOBAL
 `;
         
         // Add output variables with padding
-        outputs.forEach(output => {
-            code += `    ${output.name} AT%Q*\t: ${output.type};\n`;
+        outputs.forEach((type, name) => {
+            code += `    ${name} AT%Q*\t: ${type};\n`;
         });
         
         code += `END_VAR`;

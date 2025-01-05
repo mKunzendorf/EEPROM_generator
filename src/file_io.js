@@ -63,6 +63,13 @@ function downloadGeneratedFilesZipped(result, projectName) {
 	zip.file('other/objectlist.c', result.objectlist.value);
 	zip.file('other/utypes.h', result.utypes.value);
 
+	// Add TwinCAT module files
+	if (result.twincat_modules) {
+		Object.entries(result.twincat_modules).forEach(([moduleName, content]) => {
+			zip.file(`twincat/${moduleName}.TcGVL`, content);
+		});
+	}
+
 	// Generate and download the zip file
 	zip.generateAsync({ type: "blob" }).then(function (blob) {
 		downloadFile(blob, "esi.zip", "application/zip");

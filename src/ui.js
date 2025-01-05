@@ -129,15 +129,43 @@ function processForm(form)
 	outputCtl.structure_handle_cpp_cpp.value = structure_handle_generator_cpp(form, od, indexes);
 	outputCtl.ioctl_lan9252.value = ioctl_lan9252_generator(form, od, indexes);
 	outputCtl.main_cpp.value = main_generator(form, od, indexes);
+	
+	// Generate TwinCAT module files
+	const twincatModules = twincat_gvl_generator(form, od, indexes, _tcmod);
+	outputCtl.twincat_modules = twincatModules;  // Store for backup/restore
+	
+	// Clear any existing TwinCAT module textareas
+	const existingModules = outputCtl.querySelectorAll('[name^="twincat_"]');
+	existingModules.forEach(element => element.parentElement.remove());
+	
+	// Find the twincat_modules_content div
+	const container = document.getElementById('twincat_modules_content');
+	container.innerHTML = ''; // Clear existing content
+	
+	// Add TwinCAT modules to the designated container
+	Object.entries(twincatModules).forEach(([moduleName, content]) => {
+		const moduleSection = document.createElement('div');
+		moduleSection.innerHTML = `
+			${moduleName}.TcGVL:
+			<button name="Download_${moduleName}" 
+				onClick="downloadFile(this.nextElementSibling.value, '${moduleName}.TcGVL', 'text/plain');">
+				🔽 &nbsp; Download &nbsp;
+			</button>
+			<br>
+			<textarea cols="150" rows="12" name="twincat_${moduleName}">${content}</textarea><br><br>
+		`;
+		container.appendChild(moduleSection);
+	});
+	
+	// Continue with remaining generators
 	outputCtl.test_c.value = test_program_generator(form, od, indexes);
 	outputCtl.HEX.hexData = hex_generator(form);
 	outputCtl.HEX.value = toIntelHex(outputCtl.HEX.hexData);
 	outputCtl.HEX.header = toEsiEepromH(outputCtl.HEX.hexData);
 	outputCtl.ESI.value = esi_generator(form, od, indexes, _dc);
 	outputCtl.backupJson = prepareBackupFileContent(form, odSections, _dc, _tcmod);
-	
 	saveLocalBackup(outputCtl.backupJson);
-
+	
 	return outputCtl;
 }
 

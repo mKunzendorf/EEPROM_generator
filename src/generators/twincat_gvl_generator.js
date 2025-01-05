@@ -11,41 +11,45 @@ function twincat_gvl_generator(form, od, indexes, tcmod) {
     
     // Generate a GVL file for each module
     tcmod.forEach(module => {
+        // First pass: collect all variables and find longest name
+        const inputs = [];
+        const outputs = [];
+        let maxLength = 0;
+        
+        indexes.forEach(index => {
+            const objd = od[index];
+            if (objd && objd.pdo_mappings) {
+                const varName = variableName(objd.name);
+                maxLength = Math.max(maxLength, varName.length);
+                const varType = getTwinCatDataType(objd.dtype.toUpperCase());
+                
+                if (objd.pdo_mappings.includes('txpdo')) {
+                    inputs.push({ name: varName, type: varType });
+                }
+                if (objd.pdo_mappings.includes('rxpdo')) {
+                    outputs.push({ name: varName, type: varType });
+                }
+            }
+        });
+        
+        // Generate code with proper alignment
         let code = `{attribute 'qualified_only'}
 VAR_GLOBAL
     // Input variables (Device to PLC)
 `;
         
-        // Get lists of input and output variables
-        indexes.forEach(index => {
-            const objd = od[index];
-            if (objd.pdo_mappings) {
-                const varName = variableName(objd.name);
-                const varType = getTwinCatDataType(objd.data_type);
-                
-                // Handle TxPDO (inputs to PLC)
-                if (objd.pdo_mappings.includes('txpdo')) {
-                    code += `    ${varName} : ${varType};\n`;
-                }
-            }
+        // Add input variables with padding
+        inputs.forEach(input => {
+            code += `    ${input.name} AT%I*\t: ${input.type};\n`;
         });
         
         code += `
     // Output variables (PLC to Device)
 `;
         
-        // Add output variables
-        indexes.forEach(index => {
-            const objd = od[index];
-            if (objd.pdo_mappings) {
-                const varName = variableName(objd.name);
-                const varType = getTwinCatDataType(objd.data_type);
-                
-                // Handle RxPDO (outputs from PLC)
-                if (objd.pdo_mappings.includes('rxpdo')) {
-                    code += `    ${varName} : ${varType};\n`;
-                }
-            }
+        // Add output variables with padding
+        outputs.forEach(output => {
+            code += `    ${output.name} AT%Q*\t: ${output.type};\n`;
         });
         
         code += `END_VAR`;

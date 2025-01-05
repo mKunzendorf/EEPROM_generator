@@ -503,17 +503,18 @@
 
    <div id="editTwinCatModal" class="modal">
        <div class="modal-content">
+           <span class="close" onClick="twinCatModalClose()">&times;</span>
            <h3 id="editTwinCatTitle"><strong>Edit Twincat Module</strong></h3>
            <form id="EditTwinCatForm" onsubmit="return false;">
-               <table>
+               <table border="0">
                    <tr>
                        <td>Name:</td>
                        <td><input type="text" id="modalInputTwinCatName" name="Name"></td>
                    </tr>
                </table>
                <br>
-               <button type="button" onclick="twinCatModalSave()">Save</button>
-               <button type="button" onclick="twinCatModalClose()">Cancel</button>
+               <button type="button" onclick="twinCatModalSave()">✔️&nbsp; Save changes &nbsp;</button>
+               <button type="button" onclick="twinCatModalClose()">✖️ &nbsp; Cancel &nbsp;</button>
            </form>
        </div>
    </div>

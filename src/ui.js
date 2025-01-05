@@ -53,6 +53,9 @@ window.onclick = function(event) {
 	if (event.target == odModal) {
 		odModalClose();
 	}
+	if (event.target == document.getElementById('editTwinCatModal')) {
+		twinCatModalClose();
+	}
 }
 
 const odSections = {
@@ -804,37 +807,48 @@ function onRemoveTwinCatModuleClick(i) {
 var twinCatModules = {};
 
 function twinCatModalSetup() {
-	twincatModules = document.getElementById("editTwinCatModal");
-	if (twincatModules) {
-		twincatModules.form = document.getElementById('EditTwinCatForm');
+	twinCatModules = document.getElementById("editTwinCatModal");
+	if (twinCatModules) {
+		twinCatModules.form = document.getElementById('EditTwinCatForm');
 	} else {
-		alert("Element required to edit Twincat Modules not found!");
+		alert("Element required to edit TwinCAT Modules not found!");
 	}
 }
 
 function twinCatModuleEdit(module) {
-	twincatModules.form.Name.value = module.name;
-	twincatModules.module = module;
-	twincatModules.style.display = "block";
+	// Find the index of the module we're editing
+	const moduleIndex = _tcmod.findIndex(m => m === module);
+	
+	twinCatModules = { 
+		module: {...module},  // Create a copy of the module
+		index: moduleIndex   // Store the index for later use
+	};
+	document.getElementById('modalInputTwinCatName').value = module.name;
+	document.getElementById('editTwinCatModal').style.display = 'block';
 }
 
 function twinCatModalSave() {
-	const modalform = document.getElementById('EditTwinCatForm');
 	const name = document.getElementById('modalInputTwinCatName').value;
 	
-	if (!twinCatModules) {
+	if (!twinCatModules || !twinCatModules.module) {
 		twinCatModules = { 
 			module: {
 				name: name
 			},
 			add: true
 		};
+	} else {
+		twinCatModules.module.name = name;
+		
+		// If we're editing (not adding), update the module in _tcmod
+		if (!twinCatModules.add && typeof twinCatModules.index !== 'undefined') {
+			_tcmod[twinCatModules.index] = {...twinCatModules.module};
+		}
 	}
 	
-	twinCatModules.module.name = name;
-	
+	// Only push if we're adding a new module
 	if (twinCatModules.add) {
-		_tcmod.push({...twinCatModules.module}); // Create a new object copy
+		_tcmod.push({...twinCatModules.module});
 		delete twinCatModules.add;
 	}
 	
@@ -844,6 +858,6 @@ function twinCatModalSave() {
 }
 
 function twinCatModalClose() {
-	twincatModules.style.display = "none";
-	delete twincatModules.module;
+	document.getElementById('editTwinCatModal').style.display = 'none';
+	twinCatModules = {};  // Reset the module data
 }

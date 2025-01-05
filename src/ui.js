@@ -779,11 +779,14 @@ function reloadTwinCatModules() {
 }
 
 function addTwinCatModuleClick() {
-	const newTwinCatModule = {
-		name: "twincat_module",
-	}
-	twincatModal.add = true;
-	twinCatModuleEdit(newTwinCatModule);
+	twinCatModules = { 
+		module: {
+			name: ""
+		},
+		add: true
+	};
+	document.getElementById('modalInputTwinCatName').value = "";
+	document.getElementById('editTwinCatModal').style.display = 'block';
 }
 
 function onEditTwinCatModuleClick(i) {
@@ -798,7 +801,7 @@ function onRemoveTwinCatModuleClick(i) {
 }
 
 // ####################### Handle Twincat modal dialog ####################### //
-var twincatModules = {};
+var twinCatModules = {};
 
 function twinCatModalSetup() {
 	twincatModules = document.getElementById("editTwinCatModal");
@@ -816,12 +819,23 @@ function twinCatModuleEdit(module) {
 }
 
 function twinCatModalSave() {
-	const modalform = twincatModules.form;
-	twincatModules.module.name = modalform.Name.value;
+	const modalform = document.getElementById('EditTwinCatForm');
+	const name = document.getElementById('modalInputTwinCatName').value;
 	
-	if (twincatModules.add) {
-		_tcmod.push(twincatModules.module);
-		delete twincatModules.add;
+	if (!twinCatModules) {
+		twinCatModules = { 
+			module: {
+				name: name
+			},
+			add: true
+		};
+	}
+	
+	twinCatModules.module.name = name;
+	
+	if (twinCatModules.add) {
+		_tcmod.push({...twinCatModules.module}); // Create a new object copy
+		delete twinCatModules.add;
 	}
 	
 	twinCatModalClose();

@@ -370,6 +370,15 @@
                <div id="dcSyncModes"></div>
             
             <tr><td colspan="6"><hr></td</tr>
+               <h3 class="odSectionHeading">
+                  <span title="Twincat Module configuration" class="odSectionTitle"> Twincat Modules </span>
+                  <span>
+                     <button onClick="addTwinCatModuleClick()">➕ Add Twincat Module</button>
+                  </span>
+               </h3>
+               <div id="twincatModules"></div>
+
+            <tr><td colspan="6"><hr></td</tr>
 
             <tr><td colspan="6" align="center">
                <button name="GenerateDownload" onclick="onGenerateDownloadClick()" title="Generate all files and download at once">
@@ -490,6 +499,23 @@
 
          <input id="restoreFileInput" type='file' accept=".json" style="visibility:hidden;" onchange="readFile(event)" />
       </form>
+   </div>
+
+   <div id="editTwinCatModal" class="modal">
+       <div class="modal-content">
+           <h3 id="editTwinCatTitle"><strong>Edit Twincat Module</strong></h3>
+           <form id="EditTwinCatForm" onsubmit="return false;">
+               <table>
+                   <tr>
+                       <td>Name:</td>
+                       <td><input type="text" id="modalInputTwinCatName" name="Name"></td>
+                   </tr>
+               </table>
+               <br>
+               <button type="button" onclick="twinCatModalSave()">Save</button>
+               <button type="button" onclick="twinCatModalClose()">Cancel</button>
+           </form>
+       </div>
    </div>
 
    <script>

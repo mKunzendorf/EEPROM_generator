@@ -61,18 +61,20 @@ const odSections = {
 	rxpdo : {}, // this will be done when stitching sections during code generation
 };
 const _dc = [];
+const _tcmod = [];
 
 const dtypeDefault = DTYPE.UNSIGNED8 // when adding new item or subitem
 
 window.onload = (event) => {
 	odModalSetup();
 	syncModalSetup();
+	twinCatModalSetup();
 	const form = getForm();
 	setFormValues(form, getFormDefaultValues());
-	tryRestoreLocalBackup(form, odSections, _dc);
+	tryRestoreLocalBackup(form, odSections, _dc, _tcmod);
 	reloadOD_Sections();
 	reloadSyncModes();
-	// for convinience during tool development, trigger codegen on page refresh
+	reloadTwinCatModules();
 	processForm(form);
 	
 	const _isComputerFast = automaticCodegen;
@@ -129,7 +131,7 @@ function processForm(form)
 	outputCtl.HEX.value = toIntelHex(outputCtl.HEX.hexData);
 	outputCtl.HEX.header = toEsiEepromH(outputCtl.HEX.hexData);
 	outputCtl.ESI.value = esi_generator(form, od, indexes, _dc);
-	outputCtl.backupJson = prepareBackupFileContent(form, odSections, _dc);
+	outputCtl.backupJson = prepareBackupFileContent(form, odSections, _dc, _tcmod);
 	
 	saveLocalBackup(outputCtl.backupJson);
 
@@ -171,9 +173,10 @@ function onRestoreClick() {
 function onRestoreComplete(fileContent) {
 	const form = getForm();
 	resetLocalBackup();
-	restoreBackup(fileContent, form, odSections, _dc);
+	restoreBackup(fileContent, form, odSections, _dc, _tcmod);
 	reloadOD_Sections();
 	reloadSyncModes();
+	reloadTwinCatModules();
 	processForm(form);
 	// location.reload(true);
 }
@@ -755,4 +758,78 @@ function reloadSyncModes() {
 	if (sectionElement) {
 		sectionElement.innerHTML = section;
 	}
+}
+
+// ####################### Twincat Module settings UI ####################### //
+
+function reloadTwinCatModules() {
+	let section = '';
+	let i = 0;
+	_tcmod.forEach(module => {
+		section += `<div class="odItem"><span class="odItemContent"><strong>${module.name}</strong></span><span>`;
+		section += `<button onClick='onRemoveTwinCatModuleClick(${i})'>&nbsp; ❌ Remove &nbsp;</button>`;
+		section += `<button onClick='onEditTwinCatModuleClick(${i})'>&nbsp; 🛠️ &nbsp; Edit &nbsp;</button>`;
+		section += `</span></div>`;
+		++i;
+	});
+	const sectionElement = document.getElementById(`twincatModules`);
+	if (sectionElement) {
+		sectionElement.innerHTML = section;
+	}
+}
+
+function addTwinCatModuleClick() {
+	const newTwinCatModule = {
+		name: "twincat_module",
+	}
+	twincatModal.add = true;
+	twinCatModuleEdit(newTwinCatModule);
+}
+
+function onEditTwinCatModuleClick(i) {
+	const twinCatModule = _tcmod[i];
+	twinCatModuleEdit(twinCatModule);
+}
+
+function onRemoveTwinCatModuleClick(i) {
+	_tcmod.splice(i, 1);
+	reloadTwinCatModules();
+	onFormChanged();
+}
+
+// ####################### Handle Twincat modal dialog ####################### //
+var twincatModules = {};
+
+function twinCatModalSetup() {
+	twincatModules = document.getElementById("editTwinCatModal");
+	if (twincatModules) {
+		twincatModules.form = document.getElementById('EditTwinCatForm');
+	} else {
+		alert("Element required to edit Twincat Modules not found!");
+	}
+}
+
+function twinCatModuleEdit(module) {
+	twincatModules.form.Name.value = module.name;
+	twincatModules.module = module;
+	twincatModules.style.display = "block";
+}
+
+function twinCatModalSave() {
+	const modalform = twincatModules.form;
+	twincatModules.module.name = modalform.Name.value;
+	
+	if (twincatModules.add) {
+		_tcmod.push(twincatModules.module);
+		delete twincatModules.add;
+	}
+	
+	twinCatModalClose();
+	reloadTwinCatModules();
+	onFormChanged();
+}
+
+function twinCatModalClose() {
+	twincatModules.style.display = "none";
+	delete twincatModules.module;
 }

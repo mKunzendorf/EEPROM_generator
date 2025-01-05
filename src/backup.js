@@ -30,7 +30,7 @@ function isRadioButton(formControl) {
 	return formControl.name.startsWith('DetailsEnable') || formControl.name.startsWith('CoeDetailsEnable');
 }
 
-function prepareBackupObject(form, odSections, dc) {
+function prepareBackupObject(form, odSections, dc, tcmod) {
 	const formValues = {};
 	if (form) {
 		Object.entries(form).forEach(formEntry => {
@@ -45,12 +45,13 @@ function prepareBackupObject(form, odSections, dc) {
 		form: formValues,
 		od: odSections,
 		dc: dc,
+		tcmod: tcmod,
 	};
 
 	return backup;
 }
 
-function loadBackup(backupObject, form, odSections, dc) {
+function loadBackup(backupObject, form, odSections, dc, tcmod) {
 	if (backupObject.od) {
 		odSections.sdo = backupObject.od.sdo;
 		odSections.txpdo = backupObject.od.txpdo;
@@ -60,6 +61,10 @@ function loadBackup(backupObject, form, odSections, dc) {
 	if (backupObject.dc) {
 		backupObject.dc.forEach(d => dc.push(d));
 	}
+
+	if (backupObject.tcmod) {
+		backupObject.tcmod.forEach(t => tcmod.push(t));
+	} 
 	
 	setFormValues(form, backupObject);
 }
@@ -96,8 +101,8 @@ function setFormControlValue(formControl, value) {
 	}
 }
 
-function prepareBackupFileContent(form, odSections, dc) {
-	const backupObject = prepareBackupObject(form, odSections, dc);
+function prepareBackupFileContent(form, odSections, dc, tcmod) {
+	const backupObject = prepareBackupObject(form, odSections, dc, tcmod);
 	const backupFileContent = JSON.stringify(backupObject, null, 2); // pretty print
 	return backupFileContent;
 }
@@ -110,10 +115,10 @@ function downloadBackupFile(backupJson) {
 	downloadFile(backupJson, 'esi.json', 'text/json');
 }
 
-function restoreBackup(fileContent, form, odSections, dc) {
+function restoreBackup(fileContent, form, odSections, dc, tcmod) {
 	const backup = JSON.parse(fileContent);
 	if (isValidBackup(backup)) {
-		loadBackup(backup, form, odSections, dc);
+		loadBackup(backup, form, odSections, dc, tcmod);
 	}
 }
 
@@ -124,9 +129,9 @@ function saveLocalBackup(backupJson) {
 	localStorage.etherCATeepromGeneratorBackup = backupJson;
 }
 
-function tryRestoreLocalBackup(form, odSections, dc) {
+function tryRestoreLocalBackup(form, odSections, dc, tcmod) {
 	if (localStorage.etherCATeepromGeneratorBackup)  {
-		restoreBackup(localStorage.etherCATeepromGeneratorBackup, form, odSections, dc);
+		restoreBackup(localStorage.etherCATeepromGeneratorBackup, form, odSections, dc, tcmod);
 	}	
 }
 

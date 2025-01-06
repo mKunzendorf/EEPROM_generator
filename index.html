@@ -32,6 +32,7 @@
    <script src="src/generators/main_generator.js"></script>
    <script src="src/generators/test_program_generator.js"></script>
    <script src="src/generators/twincat_gvl_generator.js"></script>
+   <script src="src/generators/twincat_crc_generator.js"></script>
    <script src="src/ui.js"></script>
    
    <link rel="stylesheet" href="styles/styles.css">
@@ -474,8 +475,13 @@
          <textarea cols="150" rows="12" name="main_cpp">main.cpp</textarea><br><br>
 
          <!-- TwinCAT folder -->
-         <div id="twincat_modules_content">
-            <!-- Dynamic TwinCAT module content will be inserted here -->
+         <div id="twincat_modules_section">
+             <div id="twincat_modules_content">
+                 <!-- Dynamic TwinCAT GVL module content will be inserted here -->
+             </div>
+             <div id="twincat_crc_content">
+                 <!-- Dynamic TwinCAT CRC content will be inserted here -->
+             </div>
          </div>
 
          <!-- Other folder -->

@@ -70,6 +70,13 @@ function downloadGeneratedFilesZipped(result, projectName) {
 		});
 	}
 
+	// Add TwinCAT CRC files
+	if (result.twincat_crc) {
+		Object.entries(result.twincat_crc).forEach(([fileName, content]) => {
+			zip.file(`twincat/${fileName}.TcPOU`, content);
+		});
+	}
+
 	// Generate and download the zip file
 	zip.generateAsync({ type: "blob" }).then(function (blob) {
 		downloadFile(blob, "esi.zip", "application/zip");

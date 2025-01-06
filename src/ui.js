@@ -139,10 +139,10 @@ function processForm(form)
 	existingModules.forEach(element => element.parentElement.remove());
 	
 	// Find the twincat_modules_content div
-	const container = document.getElementById('twincat_modules_content');
-	container.innerHTML = ''; // Clear existing content
+	const gvlContainer = document.getElementById('twincat_modules_content');
+	gvlContainer.innerHTML = ''; // Clear existing content
 	
-	// Add TwinCAT modules to the designated container
+	// Add TwinCAT GVL modules
 	Object.entries(twincatModules).forEach(([moduleName, content]) => {
 		const moduleSection = document.createElement('div');
 		moduleSection.innerHTML = `
@@ -154,8 +154,31 @@ function processForm(form)
 			<br>
 			<textarea cols="150" rows="12" name="twincat_${moduleName}">${content}</textarea><br><br>
 		`;
-		container.appendChild(moduleSection);
+		gvlContainer.appendChild(moduleSection);
 	});
+	
+	// Generate and display TwinCAT CRC files if enabled
+	const twincatCrc = twincat_crc_generator(form, od, indexes, _tcmod);
+	outputCtl.twincat_crc = twincatCrc;  // Store for backup/restore
+	
+	if (form.DetailsEnableCRC.checked) {
+		const crcContainer = document.getElementById('twincat_crc_content');
+		crcContainer.innerHTML = ''; // Clear existing content
+		
+		Object.entries(twincatCrc).forEach(([fileName, content]) => {
+			const crcSection = document.createElement('div');
+			crcSection.innerHTML = `
+				${fileName}.TcPOU:
+				<button name="Download_${fileName}" 
+					onClick="downloadFile(this.nextElementSibling.value, '${fileName}.TcPOU', 'text/plain');">
+					🔽 &nbsp; Download &nbsp;
+				</button>
+				<br>
+				<textarea cols="150" rows="12" name="twincat_crc_${fileName}">${content}</textarea><br><br>
+			`;
+			crcContainer.appendChild(crcSection);
+		});
+	}
 	
 	// Continue with remaining generators
 	outputCtl.test_c.value = test_program_generator(form, od, indexes);

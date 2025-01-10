@@ -128,6 +128,15 @@ function addRXPDOitems(form, odSections, od, booleanPaddingCount) {
 
 	// Add CRC entries if enabled
 	if (form.DetailsEnableCRC.checked) {
+		// Create a new section without existing CRC entries
+		const filteredSection = {};
+		Object.entries(rxpdoSection).forEach(([key, value]) => {
+			if (!value.name.startsWith('crc_')) {
+				filteredSection[key] = value;
+			}
+		});
+
+		// Add CRC entry at the beginning
 		const crcEntry = {
 			otype: "VAR",
 			name: "crc_output",
@@ -139,10 +148,10 @@ function addRXPDOitems(form, odSections, od, booleanPaddingCount) {
 		};
 		addObject(od, crcEntry, "7000");
 		
-		// Adjust section to start after CRC entries
+		// Add remaining entries with adjusted indices
 		const adjustedSection = {};
-		Object.entries(rxpdoSection).forEach(([key, value]) => {
-			const newKey = (parseInt(key, 16) + 1).toString(16).padStart(4, '0').toUpperCase();
+		Object.entries(filteredSection).forEach(([key, value], index) => {
+			const newKey = (0x7001 + index).toString(16).padStart(4, '0').toUpperCase();
 			adjustedSection[newKey] = value;
 		});
 		return addPdoObjectsSection(od, adjustedSection, pdo, booleanPaddingCount);
@@ -161,6 +170,15 @@ function addTXPDOitems(form, odSections, od, booleanPaddingCount) {
 
 	// Add CRC entries if enabled
 	if (form.DetailsEnableCRC.checked) {
+		// Create a new section without existing CRC entries
+		const filteredSection = {};
+		Object.entries(txpdoSection).forEach(([key, value]) => {
+			if (!value.name.startsWith('crc_')) {
+				filteredSection[key] = value;
+			}
+		});
+
+		// Add CRC entries at the beginning
 		const crcInput = {
 			otype: "VAR",
 			name: "crc_input",
@@ -183,10 +201,10 @@ function addTXPDOitems(form, odSections, od, booleanPaddingCount) {
 		addObject(od, crcInput, "6000");
 		addObject(od, crcErrors, "6001");
 
-		// Adjust section to start after CRC entries
+		// Add remaining entries with adjusted indices
 		const adjustedSection = {};
-		Object.entries(txpdoSection).forEach(([key, value]) => {
-			const newKey = (parseInt(key, 16) + 2).toString(16).padStart(4, '0').toUpperCase();
+		Object.entries(filteredSection).forEach(([key, value], index) => {
+			const newKey = (0x6002 + index).toString(16).padStart(4, '0').toUpperCase();
 			adjustedSection[newKey] = value;
 		});
 		return addPdoObjectsSection(od, adjustedSection, pdo, booleanPaddingCount);
@@ -436,7 +454,8 @@ function buildObjectDictionary(form, odSections) {
 	let booleanPaddingCount = addTXPDOitems(form, odSections, od, 0);
 	addRXPDOitems(form, odSections, od, booleanPaddingCount);
 
-	return od;
+	// Filter out duplicate CRC entries
+	return filterDuplicateCRCEntries(od);
 }
 
 // ####################### Object Dictionary index manipulation ####################### //
@@ -617,35 +636,29 @@ function getCrcEntries(pdo_type) {
 	return {};
 }
 
-// Modify the function that generates/updates PDO entries
+// Modify the updatePdoIndices function to prevent duplication
 function updatePdoIndices(pdo_type) {
 	const entries = odSections[pdo_type];
-	const baseIndex = pdo_type === 'txpdo' ? 0x6000 : 0x7000;
+	const baseIndex = pdo_type === 'txpdo' ? 0x6002 : 0x7001; // Start after CRC entries
 	
 	// Create new object to store reindexed entries
 	const newEntries = {};
 	
-	// Get non-CRC entries first
+	// Add CRC entries first if enabled
+	if (getForm().DetailsEnableCRC.checked) {
+		Object.assign(newEntries, getCrcEntries(pdo_type));
+	}
+	
+	// Get non-CRC entries
 	const nonCrcEntries = Object.entries(entries).filter(([_, value]) => 
 		!value.name.startsWith('crc_')
 	);
 	
-	// Add CRC entries if enabled
-	if (getForm().DetailsEnableCRC.checked) {
-		Object.assign(newEntries, getCrcEntries(pdo_type));
-		// Start regular entries after CRC entries
-		nonCrcEntries.forEach(([_, entry], i) => {
-			const newIndex = (baseIndex + Object.keys(getCrcEntries(pdo_type)).length + i)
-				.toString(16).padStart(4, '0');
-			newEntries[newIndex] = {...entry};
-		});
-	} else {
-		// Without CRC, start from base index
-		nonCrcEntries.forEach(([_, entry], i) => {
-			const newIndex = (baseIndex + i).toString(16).padStart(4, '0');
-			newEntries[newIndex] = {...entry};
-		});
-	}
+	// Add regular entries after CRC entries
+	nonCrcEntries.forEach(([_, entry], i) => {
+		const newIndex = (baseIndex + i).toString(16).padStart(4, '0');
+		newEntries[newIndex] = {...entry};
+	});
 	
 	// Update the odSections
 	odSections[pdo_type] = newEntries;
@@ -684,4 +697,22 @@ function updatePdoDisplay(elementId, pdoSection) {
 		container.appendChild(entry);
 	});
 	window.location.reload(); 
+}
+
+function filterDuplicateCRCEntries(od) {
+	const seenCRCEntries = new Set();
+	
+	// Filter out duplicate CRC entries while preserving order
+	Object.entries(od).forEach(([index, entry]) => {
+		if (entry.name.startsWith('crc_')) {
+			const key = `${entry.name}_${entry.pdo_mappings[0]}`;
+			if (seenCRCEntries.has(key)) {
+				delete od[index];
+			} else {
+				seenCRCEntries.add(key);
+			}
+		}
+	});
+	
+	return od;
 }

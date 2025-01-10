@@ -1,9 +1,17 @@
 /**
  * TwinCAT Module Generator
- * Generates .TcGVL files for each TwinCAT module
+ * Generates .TcGVL files for each TwinCAT module in XML format
  */
 
 'use strict';
+
+function generateGuid() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
 
 function twincat_gvl_generator(form, od, indexes, tcmod) {
     // Will store all generated GVL files
@@ -11,20 +19,18 @@ function twincat_gvl_generator(form, od, indexes, tcmod) {
     
     // Generate a GVL file for each module
     tcmod.forEach(module => {
-        // First pass: collect all variables and find longest name
+        // First pass: collect all variables
         const inputs = new Map();  // Use Map to prevent duplicates
         const outputs = new Map();
-        let maxLength = 0;
         
         indexes.forEach(index => {
             const objd = od[index];
             if (objd && objd.pdo_mappings) {
                 const varName = variableName(objd.name);
-                maxLength = Math.max(maxLength, varName.length);
                 const varType = getTwinCatDataType(objd.dtype.toUpperCase());
                 
                 if (objd.pdo_mappings.includes('txpdo')) {
-                    inputs.set(varName, varType);  // Map will automatically handle duplicates
+                    inputs.set(varName, varType);
                 }
                 if (objd.pdo_mappings.includes('rxpdo')) {
                     outputs.set(varName, varType);
@@ -32,27 +38,32 @@ function twincat_gvl_generator(form, od, indexes, tcmod) {
             }
         });
         
-        // Generate code with proper alignment
-        let code = `{attribute 'qualified_only'}
+        // Generate XML code
+        let code = `<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <GVL Name="${module.name}" Id="{${generateGuid()}}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
 VAR_GLOBAL
     // Input variables (Device to PLC)
 `;
         
-        // Add input variables with padding
+        // Add input variables with proper indentation (using tabs)
         inputs.forEach((type, name) => {
-            code += `    ${name} AT%I*\t: ${type};\n`;
+            code += `\t${name} AT%I*\t: ${type};\n`;
         });
         
         code += `
     // Output variables (PLC to Device)
 `;
         
-        // Add output variables with padding
+        // Add output variables with proper indentation (using tabs)
         outputs.forEach((type, name) => {
-            code += `    ${name} AT%Q*\t: ${type};\n`;
+            code += `\t${name} AT%Q*\t: ${type};\n`;
         });
         
-        code += `END_VAR`;
+        code += `END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>`;
         
         // Store the generated code with the module name
         gvlFiles[module.name] = code;

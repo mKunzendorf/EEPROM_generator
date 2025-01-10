@@ -63,17 +63,17 @@ function downloadGeneratedFilesZipped(result, projectName) {
 	zip.file('other/objectlist.c', result.objectlist.value);
 	zip.file('other/utypes.h', result.utypes.value);
 
-	// Add TwinCAT module files
+	// Add TwinCAT module files to twincat_gvl folder
 	if (result.twincat_modules) {
 		Object.entries(result.twincat_modules).forEach(([moduleName, content]) => {
-			zip.file(`twincat/${moduleName}.TcGVL`, content);
+			zip.file(`twincat/gvl/${moduleName}.TcGVL`, content);
 		});
 	}
 
-	// Add TwinCAT CRC files
+	// Add TwinCAT CRC files to twincat_crc folder
 	if (result.twincat_crc) {
 		Object.entries(result.twincat_crc).forEach(([fileName, content]) => {
-			zip.file(`twincat/${fileName}.TcPOU`, content);
+				zip.file(`twincat/crc_calc/${fileName}.TcPOU`, content);
 		});
 	}
 

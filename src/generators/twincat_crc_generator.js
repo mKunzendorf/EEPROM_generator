@@ -6,11 +6,13 @@
 'use strict';
 
 const DATA_TYPE_UNIONS = {
-    'UNSIGNED32': 'udint_union',
+    'UNSIGNED8': 'usint_union',
     'UNSIGNED16': 'uint_union',
+    'UNSIGNED32': 'udint_union',
     'UNSIGNED64': 'ulint_union',
-    'INTEGER32': 'dint_union',
+    'INTEGER8': 'sint_union',
     'INTEGER16': 'int_union',
+    'INTEGER32': 'dint_union',
     'INTEGER64': 'lint_union',
     'REAL32': 'real_union',
     'REAL64': 'lreal_union'
@@ -38,9 +40,11 @@ function generateGuid() {
 }
 
 function generateInputCrcCalculator(moduleName, variables) {
-    // Remove debug logging
-    
-    const totalBytes = variables.length * 4;
+    // Calculate total bytes based on variable types
+    const totalBytes = variables.reduce((sum, variable) => {
+        const typeSize = DATA_TYPE_SIZES[variable.dtype] || 4;
+        return sum + typeSize;
+    }, 0);
     
     let code = `<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
@@ -56,10 +60,16 @@ VAR
 	i   : UDINT; 
     bitNumber : INT;
     crc : UDINT := 16#FFFFFFFF;         // Initial value
-	DataArray : ARRAY [0..${totalBytes-1}] OF BYTE;  // Adjust size as needed
-    Length    : UDINT := ${totalBytes};                  // Number of bytes to process
+	DataArray : ARRAY [0..${totalBytes-1}] OF BYTE;  // Size based on actual data types
+    Length    : UDINT := ${totalBytes};              // Actual total bytes
 	
-${variables.map(v => `	${v.name}_union 	: ${DATA_TYPE_UNIONS[v.dtype]};`).join('\n')}
+${variables.map(v => {
+    const typeSize = DATA_TYPE_SIZES[v.dtype] || 4;
+    if (typeSize === 1 && (v.dtype === 'UNSIGNED8' || v.dtype === 'INTEGER8')) {
+        return ''; // No union needed for single-byte types
+    }
+    return `\t${v.name}_union \t: ${DATA_TYPE_UNIONS[v.dtype]};`;
+}).filter(Boolean).join('\n')}
 END_VAR
 ]]></Declaration>
     <Implementation>
@@ -68,14 +78,21 @@ END_VAR
     // Generate assignments
     let byteOffset = 0;
     variables.forEach(variable => {
-        const typeSize = DATA_TYPE_SIZES[variable.dtype] || 4; // Default to 4 if type not found
-        code += `${variable.name}_union.value := ${moduleName}.${variable.name};\n`;
+        const typeSize = DATA_TYPE_SIZES[variable.dtype] || 4;
         
-        // Generate byte assignments based on data type size
-        for (let i = 0; i < typeSize; i++) {
-            code += `DataArray[${byteOffset + i}] := ${variable.name}_union.byteArray[${i}];\n`;
+        // For single-byte types (USINT/SINT), do direct assignment
+        if (typeSize === 1 && (variable.dtype === 'UNSIGNED8' || variable.dtype === 'INTEGER8')) {
+            code += `DataArray[${byteOffset}] := ${moduleName}.${variable.name};\n\n`;
+        } else {
+            // For multi-byte types, use union
+            code += `${variable.name}_union.value := ${moduleName}.${variable.name};\n`;
+            
+            // Generate byte assignments based on data type size
+            for (let i = 0; i < typeSize; i++) {
+                code += `DataArray[${byteOffset + i}] := ${variable.name}_union.byteArray[${i}];\n`;
+            }
+            code += '\n';
         }
-        code += '\n';
         
         byteOffset += typeSize;
     });
@@ -112,7 +129,11 @@ END_IF]]></ST>
 }
 
 function generateOutputCrcCalculator(moduleName, variables) {
-    const totalBytes = variables.length * 4;
+    // Calculate total bytes based on variable types
+    const totalBytes = variables.reduce((sum, variable) => {
+        const typeSize = DATA_TYPE_SIZES[variable.dtype] || 4;
+        return sum + typeSize;
+    }, 0);
     
     let code = `<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
@@ -127,10 +148,16 @@ VAR
 	i   : UDINT; 
     bitNumber : INT;
     crc : UDINT := 16#FFFFFFFF;        
-	DataArray : ARRAY [0..${totalBytes-1}] OF BYTE;  
-    Length    : UDINT := ${totalBytes};                 
+	DataArray : ARRAY [0..${totalBytes-1}] OF BYTE;  // Size based on actual data types
+    Length    : UDINT := ${totalBytes};              // Actual total bytes
 
-${variables.map(v => `	${v.name}_union 	: ${DATA_TYPE_UNIONS[v.dtype]};`).join('\n')}
+${variables.map(v => {
+    const typeSize = DATA_TYPE_SIZES[v.dtype] || 4;
+    if (typeSize === 1 && (v.dtype === 'UNSIGNED8' || v.dtype === 'INTEGER8')) {
+        return ''; // No union needed for single-byte types
+    }
+    return `\t${v.name}_union \t: ${DATA_TYPE_UNIONS[v.dtype]};`;
+}).filter(Boolean).join('\n')}
 END_VAR
 ]]></Declaration>
     <Implementation>
@@ -139,14 +166,21 @@ END_VAR
     // Generate assignments
     let byteOffset = 0;
     variables.forEach(variable => {
-        const typeSize = DATA_TYPE_SIZES[variable.dtype] || 4; // Default to 4 if type not found
-        code += `${variable.name}_union.value := ${moduleName}.${variable.name};\n`;
+        const typeSize = DATA_TYPE_SIZES[variable.dtype] || 4;
         
-        // Generate byte assignments based on data type size
-        for (let i = 0; i < typeSize; i++) {
-            code += `DataArray[${byteOffset + i}] := ${variable.name}_union.byteArray[${i}];\n`;
+        // For single-byte types (USINT/SINT), do direct assignment
+        if (typeSize === 1 && (variable.dtype === 'UNSIGNED8' || variable.dtype === 'INTEGER8')) {
+            code += `DataArray[${byteOffset}] := ${moduleName}.${variable.name};\n\n`;
+        } else {
+            // For multi-byte types, use union
+            code += `${variable.name}_union.value := ${moduleName}.${variable.name};\n`;
+            
+            // Generate byte assignments based on data type size
+            for (let i = 0; i < typeSize; i++) {
+                code += `DataArray[${byteOffset + i}] := ${variable.name}_union.byteArray[${i}];\n`;
+            }
+            code += '\n';
         }
-        code += '\n';
         
         byteOffset += typeSize;
     });

@@ -12,12 +12,13 @@ function structure_handle_generator_cpp(form, od, indexes) {
     let offset = form.DetailsEnableCRC.checked ? 4 : 0;
     let bitOffset = 0;
     odList.forEach((variable) => {
-        if (variable.pdo_mappings) {
+        if (variable.pdo_mappings && variable.pdo_mappings.includes('rxpdo')) {
             const varName = variable.name;
             const dtype = variable.dtype.toUpperCase();
             const dataTypeSize = getSizeFromDtype(dtype);
             
-            if (varName.startsWith('TestOutput_')) {
+            // Skip CRC variables if CRC is enabled
+            if (!form.DetailsEnableCRC.checked || !varName.toLowerCase().includes('crc')) {
                 if (dtype === 'BOOLEAN') {
                     code += `    output_structure_data.${varName} = outputData[${offset}] & 0x01;\n`;
                     offset += 1;  // Move to next byte for each boolean
@@ -33,16 +34,16 @@ function structure_handle_generator_cpp(form, od, indexes) {
     // Function to copy structure to input data
     code += 'void copyStructureToInputData(const input_structure& input_structure_data, uint8_t* inputData) {\n';
 
-    //offset = form.DetailsEnableCRC.checked ? 8 : 0;
     offset = 0;
     bitOffset = 0;
     odList.forEach((variable) => {
-        if (variable.pdo_mappings) {
+        if (variable.pdo_mappings && variable.pdo_mappings.includes('txpdo')) {
             const varName = variable.name;
             const dtype = variable.dtype.toUpperCase();
             const dataTypeSize = getSizeFromDtype(dtype);
             
-            if (varName.startsWith('TestInput_')) {
+            // Skip CRC variables if CRC is enabled
+            if (!form.DetailsEnableCRC.checked || !varName.toLowerCase().includes('crc')) {
                 if (dtype === 'BOOLEAN') {
                     code += `    inputData[${offset}] = input_structure_data.${varName} ? 1 : 0;\n`;
                     offset += 1;  // Move to next byte for each boolean

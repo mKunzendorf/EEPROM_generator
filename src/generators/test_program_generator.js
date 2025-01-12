@@ -152,6 +152,9 @@ function getCTypeFromDtype(dtype) {
         case 'UINT32':
         case 'UNSIGNED32':
             return 'uint32_t';
+        case 'UINT64':
+        case 'UNSIGNED64':
+            return 'uint64_t';
         case 'INT8':
         case 'INTEGER8':
             return 'int8_t';
@@ -161,7 +164,15 @@ function getCTypeFromDtype(dtype) {
         case 'INT32':
         case 'INTEGER32':
             return 'int32_t';
+        case 'INT64':
+        case 'INTEGER64':
+            return 'int64_t';
+        case 'REAL32':
+            return 'float';
+        case 'REAL64':
+            return 'double';
         case 'BOOL':
+        case 'BOOLEAN':
             return 'bool';
         default:
             return 'uint32_t'; // Default type

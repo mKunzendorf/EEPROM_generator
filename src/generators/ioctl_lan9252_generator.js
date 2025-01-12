@@ -6,93 +6,92 @@
 'use strict';
 
 function ioctl_lan9252_generator(form, od, indexes) {
+    // Calculate input structure size
+    let inputSize = 0;
+    indexes.forEach(index => {
+        const objd = od[index];
+        if (objd.pdo_mappings && objd.pdo_mappings.includes('txpdo')) {
+            inputSize += getDataTypeSize(objd.dtype);
+        }
+    });
+    // Round up to nearest 4 bytes
+    const inputSizeAligned = Math.ceil(inputSize / 4) * 4;
 
-    // Define PDO mapping identifiers
-    const txpdo = 'txpdo';
-    const rxpdo = 'rxpdo';
+    // Calculate output structure size
+    let outputSize = 0;
+    indexes.forEach(index => {
+        const objd = od[index];
+        if (objd.pdo_mappings && objd.pdo_mappings.includes('rxpdo')) {
+            outputSize += getDataTypeSize(objd.dtype);
+        }
+    });
+    // Round up to nearest 4 bytes
+    const outputSizeAligned = Math.ceil(outputSize / 4) * 4;
 
     let header = `#ifndef IOCTL_LAN9252_H
 #define IOCTL_LAN9252_H
 
-`;
-
-    // Definitions for byte counts
-    const totalOutputBytes = getTotalOutputBytes(od, indexes);
-    const totalInputBytes = getTotalInputBytes(od, indexes);
-
-    header += `#define CUST_BYTE_NUM_OUT ${totalOutputBytes}
-#define CUST_BYTE_NUM_IN ${totalInputBytes}
-#define TOT_BYTE_NUM_ROUND_OUT ${roundUpToMultiple(totalOutputBytes, 4)}
-#define TOT_BYTE_NUM_ROUND_IN ${roundUpToMultiple(totalInputBytes, 4)}
+// Structure sizes and CRC configuration
+#define INPUT_STRUCTURE_BYTES ${inputSizeAligned}
+#define OUTPUT_STRUCTURE_BYTES ${outputSizeAligned}
+#define USE_CRC ${form.DetailsEnableCRC.checked ? 1 : 0}
+#define INPUT_CRC_BOUNDARY ${inputSize + 3}
+#define OUTPUT_CRC_BOUNDARY ${outputSize}
 
 `;
 
-    // Define input_structure
-    let inputStruct = `struct input_structure {
-`;
+    // Generate structures
+    let inputStruct = `struct input_structure {\n`;
     indexes.forEach(index => {
         const objd = od[index];
         if (objd.pdo_mappings && objd.pdo_mappings.includes('txpdo')) {
-            const varName = objd.name;
-            const ctype = getCType(objd.dtype);
-            inputStruct += `    ${ctype} ${varName};
-`;
+            if (!form.DetailsEnableCRC.checked || !objd.name.toLowerCase().includes('crc')) {
+                inputStruct += `    ${getCType(objd.dtype)} ${objd.name};\n`;
+            }
         }
     });
-    inputStruct += `};
+    inputStruct += `};\n\n`;
 
-`;
-
-    // Define output_structure
-    let outputStruct = `struct output_structure {
-`;
+    let outputStruct = `struct output_structure {\n`;
     indexes.forEach(index => {
         const objd = od[index];
         if (objd.pdo_mappings && objd.pdo_mappings.includes('rxpdo')) {
-            const varName = objd.name;
-            const ctype = getCType(objd.dtype);
-            outputStruct += `    ${ctype} ${varName};
-`;
+            if (!form.DetailsEnableCRC.checked || !objd.name.toLowerCase().includes('crc')) {
+                outputStruct += `    ${getCType(objd.dtype)} ${objd.name};\n`;
+            }
         }
     });
-    outputStruct += `};
+    outputStruct += `};\n\n`;
 
-`;
+    // Generate IOCTL commands
+    let ioctlCommands = `#define WR_VALUE _IOW('a', 'a', struct input_structure *)
+#define RD_VALUE _IOR('a', 'b', struct output_structure *)\n\n`;
 
-    // Define IOCTL commands
-    let ioctlDefs = `#define WR_VALUE _IOW('a', 'a', struct input_structure *)
-#define RD_VALUE _IOR('a', 'b', struct output_structure *)
-
-`;
-
-    // Generate individual IOCTL commands for each field
-    let ioctlCommands = '';
-    let ioctlCode = 128; // Starting code
+    let cmdCounter = 128;
     indexes.forEach(index => {
         const objd = od[index];
         if (objd.pdo_mappings) {
             const varName = objd.name;
+            if (form.DetailsEnableCRC.checked && 
+                (varName.toUpperCase().includes('CRC') || 
+                 varName.toLowerCase().includes('crc'))) {
+                return;
+            }
+            
             if (objd.pdo_mappings.includes('txpdo')) {
-                ioctlCommands += `#define WR_VALUE_${varName.toUpperCase()} _IOW('a', ${ioctlCode}, ${getCType(objd.dtype)} *)
-`;
-                ioctlCode++;
+                ioctlCommands += `#define WR_VALUE_${varName.toUpperCase()} _IOW('a', ${cmdCounter++}, ${getCType(objd.dtype)} *)\n`;
             } else if (objd.pdo_mappings.includes('rxpdo')) {
-                ioctlCommands += `#define RD_VALUE_${varName.toUpperCase()} _IOR('a', ${ioctlCode}, ${getCType(objd.dtype)} *)
-`;
-                ioctlCode++;
+                ioctlCommands += `#define RD_VALUE_${varName.toUpperCase()} _IOR('a', ${cmdCounter++}, ${getCType(objd.dtype)} *)\n`;
             }
         }
     });
 
-    // Closing the header guard
-    header += inputStruct + outputStruct + ioctlDefs + ioctlCommands;
-    header += `#endif // IOCTL_LAN9252_H
-`;
+    header += inputStruct + outputStruct + ioctlCommands;
+    header += `#endif // IOCTL_LAN9252_H\n`;
 
     return header;
 
     // Helper functions
-
     function getCType(dtype) {
         switch (dtype) {
             case 'UNSIGNED8': return 'uint8_t';
@@ -105,34 +104,9 @@ function ioctl_lan9252_generator(form, od, indexes) {
             case 'INTEGER64': return 'int64_t';
             case 'REAL32': return 'float';
             case 'REAL64': return 'double';
+            case 'BOOLEAN': return 'bool';
             default: return 'uint32_t'; // Default type
         }
-    }
-
-    function variableName(name) {
-        return name.replace(/\s+/g, '_').replace(/[^\w_]/g, '').toLowerCase();
-    }
-
-    function getTotalInputBytes(od, indexes) {
-        let totalBytes = 0;
-        indexes.forEach(index => {
-            const objd = od[index];
-            if (objd.pdo_mappings && objd.pdo_mappings.includes(txpdo)) {
-                totalBytes += getDataTypeSize(objd.dtype);
-            }
-        });
-        return totalBytes;
-    }
-
-    function getTotalOutputBytes(od, indexes) {
-        let totalBytes = 0;
-        indexes.forEach(index => {
-            const objd = od[index];
-            if (objd.pdo_mappings && objd.pdo_mappings.includes(rxpdo)) {
-                totalBytes += getDataTypeSize(objd.dtype);
-            }
-        });
-        return totalBytes;
     }
 
     function getDataTypeSize(dtype) {
@@ -150,9 +124,5 @@ function ioctl_lan9252_generator(form, od, indexes) {
             case 'REAL64': return 8;
             default: return 4; // Default size
         }
-    }
-
-    function roundUpToMultiple(number, multiple) {
-        return Math.ceil(number / multiple) * multiple;
     }
 } 

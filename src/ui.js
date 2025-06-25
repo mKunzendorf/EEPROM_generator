@@ -216,7 +216,7 @@ function onGenerateClick() {
 
 function onSaveClick() {
 	const form = getForm();
-	const backupJson = prepareBackupFileContent(form, odSections, _dc);
+	const backupJson = prepareBackupFileContent(form, odSections, _dc, _tcmod);
 	downloadBackupFile(backupJson);
 	saveLocalBackup(backupJson);
 }

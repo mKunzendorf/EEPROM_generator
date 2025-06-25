@@ -115,10 +115,47 @@ function downloadBackupFile(backupJson) {
 	downloadFile(backupJson, 'esi.json', 'text/json');
 }
 
-function restoreBackup(fileContent, form, odSections, dc, tcmod) {
-	const backup = JSON.parse(fileContent);
-	if (isValidBackup(backup)) {
-		loadBackup(backup, form, odSections, dc, tcmod);
+function restoreBackup(backupFileContent, form, odSections, _dc, _tcmod) {
+	let backupObject;
+	try {
+		backupObject = JSON.parse(backupFileContent);
+	} catch (error) {
+		console.error("JSON parsing failed:", error);
+		alert("Backup data is corrupted. Clearing local backup.");
+		resetLocalBackup();
+		return;
+	}
+	
+	// restore form values
+	if (backupObject.form) {
+		setFormValues(form, backupObject);
+	}
+	
+	// restore OD sections
+	if (backupObject.od) {
+		odSections.sdo = backupObject.od.sdo;
+		odSections.txpdo = backupObject.od.txpdo;
+		odSections.rxpdo = backupObject.od.rxpdo;
+	}
+	
+	// restore synchronization modes
+	_dc.length = 0; // Clear existing array
+	
+	// Check both _dc and dc for backward compatibility
+	const dcData = backupObject._dc || backupObject.dc;
+	if (dcData && Array.isArray(dcData)) {
+		dcData.forEach((dcItem) => {
+			_dc.push(dcItem);
+		});
+	}
+	
+	// restore TwinCAT modules  
+	_tcmod.length = 0; // Clear existing array
+	const tcmodData = backupObject._tcmod || backupObject.tcmod;
+	if (tcmodData && Array.isArray(tcmodData)) {
+		tcmodData.forEach(tcItem => {
+			_tcmod.push(tcItem);
+		});
 	}
 }
 

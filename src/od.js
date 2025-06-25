@@ -360,7 +360,6 @@ let lastCrcState = false;
 // Initialize CRC state tracking
 function initializeCrcState(form) {
 	lastCrcState = form.DetailsEnableCRC.checked;
-	console.log('Initialized CRC state:', lastCrcState);
 }
 
 function buildObjectDictionary(form, odSections) {
@@ -372,8 +371,6 @@ function buildObjectDictionary(form, odSections) {
 	const shouldReorganize = currentCrcState !== lastCrcState;
 	
 	if (shouldReorganize) {
-		console.log(`CRC state changed from ${lastCrcState} to ${currentCrcState}, reorganizing indexes`);
-		
 		if (currentCrcState) {
 			// CRC enabled - add CRC entries and reorganize
 			const newTxPdo = {};

@@ -353,18 +353,33 @@ function populateMandatoryObjectValues(form, od) {
 		od['1018'].items[4].value = parseInt(form.SerialNumber.value);
 	}
 }
-/** builds complete object dictionary, with values from UI */
+
+// Track CRC state to avoid unnecessary reorganization
+let lastCrcState = false;
+
+// Initialize CRC state tracking
+function initializeCrcState(form) {
+	lastCrcState = form.DetailsEnableCRC.checked;
+	console.log('Initialized CRC state:', lastCrcState);
+}
+
 function buildObjectDictionary(form, odSections) {
 	const od = getMandatoryObjects();
 	populateMandatoryObjectValues(form, od);
 
-	if (form.DetailsEnableCRC.checked) {
-		// Create new section objects
-		const newTxPdo = {};
-		const newRxPdo = {};
+	// Only reorganize if CRC state has changed
+	const currentCrcState = form.DetailsEnableCRC.checked;
+	const shouldReorganize = currentCrcState !== lastCrcState;
+	
+	if (shouldReorganize) {
+		console.log(`CRC state changed from ${lastCrcState} to ${currentCrcState}, reorganizing indexes`);
+		
+		if (currentCrcState) {
+			// CRC enabled - add CRC entries and reorganize
+			const newTxPdo = {};
+			const newRxPdo = {};
 
-		// Add CRC entries first if they don't already exist
-		if (!odSections.txpdo["6000"] || odSections.txpdo["6000"].name !== "crc_input") {
+			// Add CRC entries first
 			newTxPdo["6000"] = {
 				otype: "VAR",
 				name: "crc_input",
@@ -374,11 +389,7 @@ function buildObjectDictionary(form, odSections) {
 				value: "0",
 				data: "&Obj.crc_input"
 			};
-		} else {
-			newTxPdo["6000"] = odSections.txpdo["6000"];
-		}
 
-		if (!odSections.txpdo["6001"] || odSections.txpdo["6001"].name !== "crc_errors") {
 			newTxPdo["6001"] = {
 				otype: "VAR",
 				name: "crc_errors",
@@ -388,11 +399,7 @@ function buildObjectDictionary(form, odSections) {
 				value: "0",
 				data: "&Obj.crc_errors"
 			};
-		} else {
-			newTxPdo["6001"] = odSections.txpdo["6001"];
-		}
 
-		if (!odSections.rxpdo["7000"] || odSections.rxpdo["7000"].name !== "crc_output") {
 			newRxPdo["7000"] = {
 				otype: "VAR",
 				name: "crc_output",
@@ -402,51 +409,55 @@ function buildObjectDictionary(form, odSections) {
 				value: "0",
 				data: "&Obj.crc_output"
 			};
+
+			// Add existing entries with offset after CRC entries
+			Object.entries(odSections.txpdo)
+				.filter(([key, value]) => !value.name.startsWith("crc_"))
+				.forEach(([key, value], index) => {
+					const newKey = (0x6002 + index).toString(16).padStart(4, '0').toUpperCase();
+					newTxPdo[newKey] = value;
+				});
+
+			Object.entries(odSections.rxpdo)
+				.filter(([key, value]) => !value.name.startsWith("crc_"))
+				.forEach(([key, value], index) => {
+					const newKey = (0x7001 + index).toString(16).padStart(4, '0').toUpperCase();
+					newRxPdo[newKey] = value;
+				});
+
+			// Replace the sections with our new ones
+			odSections.txpdo = newTxPdo;
+			odSections.rxpdo = newRxPdo;
 		} else {
-			newRxPdo["7000"] = odSections.rxpdo["7000"];
+			// CRC disabled - remove CRC entries and move objects back to original positions
+			const newTxPdo = {};
+			const newRxPdo = {};
+
+			// Add existing entries with adjusted indices, excluding CRC entries
+			Object.entries(odSections.txpdo)
+				.filter(([key, value]) => !value.name.startsWith("crc_"))
+				.forEach(([key, value], index) => {
+					const newKey = (0x6000 + index).toString(16).padStart(4, '0').toUpperCase();
+					newTxPdo[newKey] = value;
+				});
+
+			Object.entries(odSections.rxpdo)
+				.filter(([key, value]) => !value.name.startsWith("crc_"))
+				.forEach(([key, value], index) => {
+					const newKey = (0x7000 + index).toString(16).padStart(4, '0').toUpperCase();
+					newRxPdo[newKey] = value;
+				});
+
+			// Replace the sections with our new ones
+			odSections.txpdo = newTxPdo;
+			odSections.rxpdo = newRxPdo;
 		}
-
-		// Add existing entries with fixed offset after CRC entries
-		Object.entries(odSections.txpdo)
-			.filter(([key, value]) => !value.name.startsWith("crc_"))
-			.forEach(([key, value], index) => {
-				const newKey = (0x6002 + index).toString(16).padStart(4, '0').toUpperCase();
-				newTxPdo[newKey] = value;
-			});
-
-		Object.entries(odSections.rxpdo)
-			.filter(([key, value]) => !value.name.startsWith("crc_"))
-			.forEach(([key, value], index) => {
-				const newKey = (0x7001 + index).toString(16).padStart(4, '0').toUpperCase();
-				newRxPdo[newKey] = value;
-			});
-
-		// Replace the sections with our new ones
-		odSections.txpdo = newTxPdo;
-		odSections.rxpdo = newRxPdo;
-	} else {
-		// CRC is disabled - remove CRC entries and adjust indices back
-		const newTxPdo = {};
-		const newRxPdo = {};
-
-		// Add existing entries with adjusted indices, excluding CRC entries
-		Object.entries(odSections.txpdo)
-			.filter(([key, value]) => !value.name.startsWith("crc_"))
-			.forEach(([key, value], index) => {
-				const newKey = (0x6000 + index).toString(16).padStart(4, '0').toUpperCase();
-				newTxPdo[newKey] = value;
-			});
-
-		Object.entries(odSections.rxpdo)
-			.filter(([key, value]) => !value.name.startsWith("crc_"))
-			.forEach(([key, value], index) => {
-				const newKey = (0x7000 + index).toString(16).padStart(4, '0').toUpperCase();
-				newRxPdo[newKey] = value;
-			});
-
-		// Replace the sections with our new ones
-		odSections.txpdo = newTxPdo;
-		odSections.rxpdo = newRxPdo;
+		
+		// Update the last known CRC state
+		lastCrcState = currentCrcState;
+		
+		// Reload the UI to reflect the changes
+		reloadOD_Sections();
 	}
 
 	// populate custom objects
@@ -462,7 +473,7 @@ function buildObjectDictionary(form, odSections) {
 
 function indexToString(index) {
 	const indexValue = parseInt(index);
-	return indexValue.toString(16).toUpperCase();
+	return indexValue.toString(16).toUpperCase().padStart(4, '0');
 }
 /** returns list of indexes that are used in given OD, as array of integer values */
 function getUsedIndexes(od) {
@@ -667,14 +678,7 @@ function updatePdoIndices(pdo_type) {
 // Add this to handle CRC checkbox changes and refresh the display
 function onCrcCheckboxChanged() {
 	try {
-		// Update both PDO sections
-		updatePdoIndices('txpdo');
-		updatePdoIndices('rxpdo');
-		
-		// Reload the UI
-		reloadOD_Sections();
-		
-		// Force form update
+		// Force form update which will trigger reorganization if CRC state changed
 		onFormChanged();
 		
 	} catch (error) {

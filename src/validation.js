@@ -83,13 +83,17 @@ function sanitizeHexa(value) {
 }
 
 function sanitize0xHexa(value) {
-	const hex = sanitizeHexa(value);
-	if (hex.startsWith('0')) {
-		return `0x${sanitizeHexa(hex).slice(1)}`;
-	} else {
-		return `0x${sanitizeHexa(hex)}`;
+	// Remove any existing 0x prefix and spaces
+	let hex = value.trim().toUpperCase();
+	if (hex.startsWith('0X')) {
+		hex = hex.slice(2);
 	}
 	
+	// Sanitize to only valid hex characters
+	hex = sanitizeHexa(hex);
+	
+	// Add 0x prefix
+	return `0x${hex}`;
 }
 
 function sanitizeString(value) {

@@ -74,7 +74,12 @@ window.onload = (event) => {
 	twinCatModalSetup();
 	const form = getForm();
 	setFormValues(form, getFormDefaultValues());
+	
 	tryRestoreLocalBackup(form, odSections, _dc, _tcmod);
+	
+	// Initialize CRC state tracking after form is set up
+	initializeCrcState(form);
+	
 	reloadOD_Sections();
 	reloadSyncModes();
 	reloadTwinCatModules();
@@ -408,7 +413,7 @@ function odModalSetTitle(message) {
 
 function editVAR_Click(odSectionName, indexValue = null) {
 	const otype = OTYPE.VAR;
-	const index = indexToString(indexValue);
+	const index = indexValue ? indexValue : getFirstFreeIndex(odSections, odSectionName);
 	let actionName = "Edit";
 	odModal.odSectionName = odSectionName;
 
@@ -425,7 +430,7 @@ function editVAR_Click(odSectionName, indexValue = null) {
 
 function editARRAY_Click(odSectionName, indexValue = null) {
 	const otype = OTYPE.ARRAY;
-	const index = indexToString(indexValue);
+	const index = indexValue ? indexValue : getFirstFreeIndex(odSections, odSectionName);
 	let actionName = "Edit";
 	odModal.odSectionName = odSectionName;
 	odModal.form.Access
@@ -443,7 +448,7 @@ function editARRAY_Click(odSectionName, indexValue = null) {
 
 function editRECORD_Click(odSectionName, indexValue = null) {
 	const otype = OTYPE.RECORD;
-	const index = indexToString(indexValue);
+	const index = indexValue ? indexValue : getFirstFreeIndex(odSections, odSectionName);
 	let actionName = "Edit";
 	odModal.odSectionName = odSectionName;
 
@@ -490,7 +495,12 @@ function odModalSaveChanges() {
 		return;
 	}
 	const objd = odModal.objd;
-	const index = indexToString(modalform.Index.value);
+	// Parse the hex input properly (remove 0x prefix if present)
+	let hexValue = modalform.Index.value.trim().toUpperCase();
+	if (hexValue.startsWith('0X')) {
+		hexValue = hexValue.slice(2);
+	}
+	const index = indexToString(parseInt(hexValue, 16));
 	const newName = modalform.ObjectName.value;
 
 	// validate name changes
@@ -551,7 +561,7 @@ function odModalSaveChanges() {
 }
 
 function onRemoveClick(odSectionName, indexValue, subindex = null) {
-	const index = indexToString(indexValue);
+	const index = indexValue;
 	const odSection = odSections[odSectionName];
 	const objd = odSection[index];
 	if(!objd) { alert(`${odSectionName.toUpperCase()} object ${index} does not exist!`); return; }
@@ -584,7 +594,7 @@ function onRemoveClick(odSectionName, indexValue, subindex = null) {
 }
 
 function addSubitemClick(odSectionName, indexValue) {
-	const index = indexToString(indexValue);
+	const index = indexValue;
 	const odSection = odSections[odSectionName];
 	const objd = odSection[index];
 	let subitem;
@@ -609,7 +619,7 @@ function addSubitemClick(odSectionName, indexValue) {
 }
 
 function editSubitemClick(odSectionName, indexValue, subindex, actionName = "Edit", subitem) {
-	const index = indexToString(indexValue);
+	const index = indexValue;
 	const odSection = odSections[odSectionName];
 	const objd = odSection[index];
 	
@@ -618,7 +628,7 @@ function editSubitemClick(odSectionName, indexValue, subindex, actionName = "Edi
 		subitem = objd.items[subindex];
 	}
 	
-	odModalSetTitle(`${actionName} ${odSectionName.toUpperCase()} object 0x${index} "${objd.name}" subitem 0x${indexToString(subindex)}`);
+	odModalSetTitle(`${actionName} ${odSectionName.toUpperCase()} object 0x${index} "${objd.name}" subitem 0x${subindex.toString(16).toUpperCase().padStart(2, '0')}`);
 	odModalHideControls();
 	
 	document.getElementById('dialogRowValue').style.display = "";
@@ -676,23 +686,24 @@ function reloadOD_Sections() {
 function reloadOD_Section(odSectionName) {
 	const odSection = odSections[odSectionName];
 	const indexes = getUsedIndexes(odSection);
+	
 	let section = '';
-	indexes.forEach(index => {
+	indexes.forEach((index, arrayIndex) => {
 		const objd = odSection[index];
 		section += `<div class="odItem"><span class="odItemContent"><strong>0x${index}</strong> &nbsp; &nbsp; "${objd.name}" ${objd.otype} ${objd.dtype ?? ''}</span><span>`;
 		if (objd.otype == OTYPE.ARRAY || objd.otype == OTYPE.RECORD) {
-			section += `<button onClick='addSubitemClick(${odSectionName}, 0x${index})'>&nbsp; ➕ Add subitem &nbsp;</button>`;
+			section += `<button onClick='addSubitemClick(${odSectionName}, "${index}")'>&nbsp; ➕ Add subitem &nbsp;</button>`;
 		}
-		section += `<button onClick='onRemoveClick(${odSectionName}, 0x${index})'>&nbsp; ❌ Remove &nbsp;</button>`;
-		section += `<button onClick='edit${objd.otype}_Click(${odSectionName}, 0x${index})'>&nbsp; 🛠️ &nbsp; Edit &nbsp;</button>`;
+		section += `<button onClick='onRemoveClick(${odSectionName}, "${index}")'>&nbsp; ❌ Remove &nbsp;</button>`;
+		section += `<button onClick='edit${objd.otype}_Click(${odSectionName}, "${index}")'>&nbsp; 🛠️ &nbsp; Edit &nbsp;</button>`;
 		section += `</span></div>`;
 		if (objd.items) {
 			let subindex = 1; // skip Max Subindex
 			objd.items.slice(subindex).forEach(subitem => {
 				const subindexHex = subindex < 16 ? `0${subindex.toString(16)}` : subindex.toString(16);
 				section += `<div class="odSubitem"><span class="odSubitemContent"><strong>:0x${subindexHex}</strong>&nbsp;&nbsp; "${subitem.name}" ${subitem.dtype ?? ''}</span>`;
-				section += `<span><button onClick='onRemoveClick(${odSectionName}, 0x${index}, ${subindex})'>&nbsp; ❌ Remove &nbsp;</button>`;
-				section += `<button onClick='editSubitemClick(${odSectionName}, 0x${index}, ${subindex})'>&nbsp; 🛠️ &nbsp; Edit &nbsp;</button>`;
+				section += `<span><button onClick='onRemoveClick(${odSectionName}, "${index}", ${subindex})'>&nbsp; ❌ Remove &nbsp;</button>`;
+				section += `<button onClick='editSubitemClick(${odSectionName}, "${index}", ${subindex})'>&nbsp; 🛠️ &nbsp; Edit &nbsp;</button>`;
 				section += `</span></div>`;
 				++subindex;
 			});

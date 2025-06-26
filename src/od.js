@@ -363,6 +363,9 @@ function initializeCrcState(form) {
 }
 
 function buildObjectDictionary(form, odSections) {
+	// Sort odSections to fix any ordering issues before processing
+	sortOdSectionsInPlace(odSections);
+
 	const od = getMandatoryObjects();
 	populateMandatoryObjectValues(form, od);
 
@@ -408,19 +411,23 @@ function buildObjectDictionary(form, odSections) {
 			};
 
 			// Add existing entries with offset after CRC entries
-			Object.entries(odSections.txpdo)
+			const sortedTxpdoEntries = Object.entries(odSections.txpdo)
 				.filter(([key, value]) => !value.name.startsWith("crc_"))
-				.forEach(([key, value], index) => {
-					const newKey = (0x6002 + index).toString(16).padStart(4, '0').toUpperCase();
-					newTxPdo[newKey] = value;
-				});
+				.sort(([a], [b]) => parseInt(a, 16) - parseInt(b, 16)); // Sort by hex value
+			
+			sortedTxpdoEntries.forEach(([key, value], index) => {
+				const newKey = (0x6002 + index).toString(16).padStart(4, '0').toUpperCase();
+				newTxPdo[newKey] = value;
+			});
 
-			Object.entries(odSections.rxpdo)
+			const sortedRxpdoEntries = Object.entries(odSections.rxpdo)
 				.filter(([key, value]) => !value.name.startsWith("crc_"))
-				.forEach(([key, value], index) => {
-					const newKey = (0x7001 + index).toString(16).padStart(4, '0').toUpperCase();
-					newRxPdo[newKey] = value;
-				});
+				.sort(([a], [b]) => parseInt(a, 16) - parseInt(b, 16)); // Sort by hex value
+			
+			sortedRxpdoEntries.forEach(([key, value], index) => {
+				const newKey = (0x7001 + index).toString(16).padStart(4, '0').toUpperCase();
+				newRxPdo[newKey] = value;
+			});
 
 			// Replace the sections with our new ones
 			odSections.txpdo = newTxPdo;
@@ -431,19 +438,23 @@ function buildObjectDictionary(form, odSections) {
 			const newRxPdo = {};
 
 			// Add existing entries with adjusted indices, excluding CRC entries
-			Object.entries(odSections.txpdo)
+			const sortedTxpdoEntries = Object.entries(odSections.txpdo)
 				.filter(([key, value]) => !value.name.startsWith("crc_"))
-				.forEach(([key, value], index) => {
-					const newKey = (0x6000 + index).toString(16).padStart(4, '0').toUpperCase();
-					newTxPdo[newKey] = value;
-				});
+				.sort(([a], [b]) => parseInt(a, 16) - parseInt(b, 16)); // Sort by hex value
+			
+			sortedTxpdoEntries.forEach(([key, value], index) => {
+				const newKey = (0x6000 + index).toString(16).padStart(4, '0').toUpperCase();
+				newTxPdo[newKey] = value;
+			});
 
-			Object.entries(odSections.rxpdo)
+			const sortedRxpdoEntries = Object.entries(odSections.rxpdo)
 				.filter(([key, value]) => !value.name.startsWith("crc_"))
-				.forEach(([key, value], index) => {
-					const newKey = (0x7000 + index).toString(16).padStart(4, '0').toUpperCase();
-					newRxPdo[newKey] = value;
-				});
+				.sort(([a], [b]) => parseInt(a, 16) - parseInt(b, 16)); // Sort by hex value
+			
+			sortedRxpdoEntries.forEach(([key, value], index) => {
+				const newKey = (0x7000 + index).toString(16).padStart(4, '0').toUpperCase();
+				newRxPdo[newKey] = value;
+			});
 
 			// Replace the sections with our new ones
 			odSections.txpdo = newTxPdo;
@@ -716,4 +727,56 @@ function filterDuplicateCRCEntries(od) {
 	});
 	
 	return od;
+}
+
+// ####################### Object Dictionary sorting ####################### //
+
+// Function to sort odSections in place to fix JavaScript object insertion order
+function sortOdSectionsInPlace(odSections) {
+	// Create a temporary OD to get proper sorted indexes
+	const tempOd = {};
+	Object.assign(tempOd, odSections.sdo || {});
+	Object.assign(tempOd, odSections.txpdo || {});
+	Object.assign(tempOd, odSections.rxpdo || {});
+	
+	// Get properly sorted indexes
+	const sortedIndexes = getUsedIndexes(tempOd);
+	
+	// Filter indexes to only PDO ranges and sort them properly
+	const txpdoIndexes = sortedIndexes.filter(index => {
+		const hexVal = parseInt(index, 16);
+		return hexVal >= 0x6000 && hexVal < 0x7000 && odSections.txpdo[index];
+	}).sort((a, b) => parseInt(a, 16) - parseInt(b, 16));
+	
+	const rxpdoIndexes = sortedIndexes.filter(index => {
+		const hexVal = parseInt(index, 16);
+		return hexVal >= 0x7000 && hexVal < 0x8000 && odSections.rxpdo[index];
+	}).sort((a, b) => parseInt(a, 16) - parseInt(b, 16));
+	
+	// Rebuild txpdo section with proper ordering
+	const sortedTxpdo = {};
+	txpdoIndexes.forEach((index, arrayIndex) => {
+		// Use Object.defineProperty to ensure proper insertion order
+		Object.defineProperty(sortedTxpdo, index, {
+			value: odSections.txpdo[index],
+			writable: true,
+			enumerable: true,
+			configurable: true
+		});
+	});
+	
+	// Rebuild rxpdo section with proper ordering  
+	const sortedRxpdo = {};
+	rxpdoIndexes.forEach(index => {
+		Object.defineProperty(sortedRxpdo, index, {
+			value: odSections.rxpdo[index],
+			writable: true,
+			enumerable: true,
+			configurable: true
+		});
+	});
+	
+	// Replace the sections with correctly ordered ones
+	odSections.txpdo = sortedTxpdo;
+	odSections.rxpdo = sortedRxpdo;
 }

@@ -2,8 +2,8 @@
 // This generator creates a C test program based on the provided EtherCAT variables.
 
 function test_program_generator(form, od, indexes) {
-    // Convert od to an array if it's not already
-    const odList = Array.isArray(od) ? od : Object.values(od);
+    // Create properly sorted array using indexes instead of Object.values
+    const odList = indexes.map(index => od[index]);
 
     let code = '';
 

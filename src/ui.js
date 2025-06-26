@@ -23,6 +23,11 @@ function getOutputForm() {
 
 function onFormChanged() {
 	const form = getForm();
+	
+	// Sort odSections to fix any ordering issues after UI changes
+	sortOdSectionsInPlace(odSections);
+	
+	// Regenerate all files with correct ordering
 	processForm(form);
 }
 
@@ -75,10 +80,17 @@ window.onload = (event) => {
 	const form = getForm();
 	setFormValues(form, getFormDefaultValues());
 	
+	// TEMPORARY: Clear localStorage to fix persistent ordering issues
+	console.log('=== CLEARING LOCALSTORAGE TO FIX ORDERING ===');
+	resetLocalBackup();
+	
 	tryRestoreLocalBackup(form, odSections, _dc, _tcmod);
 	
 	// Initialize CRC state tracking after form is set up
 	initializeCrcState(form);
+	
+	// Sort odSections after restore to ensure correct ordering
+	sortOdSectionsInPlace(odSections);
 	
 	reloadOD_Sections();
 	reloadSyncModes();
@@ -191,7 +203,7 @@ function processForm(form)
 	outputCtl.HEX.value = toIntelHex(outputCtl.HEX.hexData);
 	outputCtl.HEX.header = toEsiEepromH(outputCtl.HEX.hexData);
 	outputCtl.ESI.value = esi_generator(form, od, indexes, _dc);
-	outputCtl.backupJson = prepareBackupFileContent(form, odSections, _dc, _tcmod);
+	outputCtl.backupJson = prepareBackupFileContent(form, odSections, _dc, _tcmod, indexes);
 	saveLocalBackup(outputCtl.backupJson);
 	
 	return outputCtl;
@@ -216,7 +228,10 @@ function onGenerateClick() {
 
 function onSaveClick() {
 	const form = getForm();
-	const backupJson = prepareBackupFileContent(form, odSections, _dc, _tcmod);
+	// Generate indexes for proper sorting in backup
+	const od = buildObjectDictionary(form, odSections);
+	const indexes = getUsedIndexes(od);
+	const backupJson = prepareBackupFileContent(form, odSections, _dc, _tcmod, indexes);
 	downloadBackupFile(backupJson);
 	saveLocalBackup(backupJson);
 }
@@ -552,6 +567,10 @@ function odModalSaveChanges() {
 		removeObject(odSection, odModal.index_initial_value); // detach from OD, to avoid duplicate if index changed
 	}
 	addObject(odSection, objd, index);	// attach updated object
+	
+	// Sort odSections to fix any ordering issues after object modification
+	sortOdSectionsInPlace(odSections);
+	
 	odModalClose();
 	reloadOD_Section(odModal.odSectionName);
 	delete odModal.odSectionName;
@@ -581,6 +600,10 @@ function onRemoveClick(odSectionName, indexValue, subindex = null) {
 		} else {
 			removeObject(odSection, index);
 		}
+		
+		// Sort odSections to fix any ordering issues after object removal
+		sortOdSectionsInPlace(odSections);
+		
 		reloadOD_Section(odSectionName);
 		onFormChanged();
 	}

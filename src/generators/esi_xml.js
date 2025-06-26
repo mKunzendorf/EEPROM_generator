@@ -16,6 +16,13 @@
 //See ETG2000 for ESI format
 function esi_generator(form, od, indexes, dc)
 {
+	console.log('Starting ESI generation with:', {
+		form: form,
+		od: od,
+		indexes: indexes,
+		dc: dc
+	});
+
 	//VendorID
 	let esi =`<?xml version="1.0" encoding="UTF-8"?>\n<EtherCATInfo>\n  <Vendor>\n    <Id>${parseInt(form.VendorID.value).toString()}</Id>\n`;
 	//VendorName
@@ -34,6 +41,7 @@ function esi_generator(form, od, indexes, dc)
 	const variableTypes = {};
 	
 	function addVariableType(element) {
+		console.log('Adding variable type for element:', element);
 		if (element && element.otype && (element.otype != OTYPE.VAR && element.otype != OTYPE.ARRAY)) { 
 			alert(`${element.name} is not OTYPE VAR, cannot treat is as variable type`); return; 
 		}
@@ -173,6 +181,11 @@ function esi_generator(form, od, indexes, dc)
 	const is_rxpdo = isPdoWithVariables(od, indexes, rxpdo);
 	const is_txpdo = isPdoWithVariables(od, indexes, txpdo);
 
+	console.log('PDO status:', {
+		is_rxpdo: is_rxpdo,
+		is_txpdo: is_txpdo
+	});
+
 	esi += `\n            </Objects>\n          </Dictionary>\n        </Profile>\n        <Fmmu>Outputs</Fmmu>\n        <Fmmu>Inputs</Fmmu>\n        <Fmmu>MBoxState</Fmmu>\n`;
 	//Add Rxmailbox sizes
 	esi += `        <Sm DefaultSize="${parseInt(form.MailboxSize.value).toString(10)}" StartAddress="#x${indexToString(form.RxMailboxOffset.value)}" ControlByte="#x26" Enable="1">MBoxOut</Sm>\n`;
@@ -188,6 +201,11 @@ function esi_generator(form, od, indexes, dc)
 			const objd = od[index];
 			
 			if (isInArray(objd.pdo_mappings, rxpdo)) {
+				console.log('Processing RxPDO for object:', {
+					index: index,
+					objd: objd,
+					memOffset: memOffset
+				});
 				esi += addEsiDevicePDO(objd, index, rxpdo, memOffset);
 				++memOffset;
 			}	
@@ -198,6 +216,11 @@ function esi_generator(form, od, indexes, dc)
 		indexes.forEach(index => {
 			const objd = od[index];
 			if (isInArray(objd.pdo_mappings, txpdo)) {
+				console.log('Processing TxPDO for object:', {
+					index: index,
+					objd: objd,
+					memOffset: memOffset
+				});
 				esi += addEsiDevicePDO(objd, index, txpdo, memOffset);
 				++memOffset;
 			}
@@ -221,6 +244,12 @@ function esi_generator(form, od, indexes, dc)
 	return esi;	
 
 	function addEsiDevicePDO(objd, index, pdo, memOffset) {
+		console.log('Adding ESI Device PDO:', {
+			objd: objd,
+			index: index,
+			pdo: pdo,
+			memOffset: memOffset
+		});
 		let esi = '';
 		const PdoName = pdo[0].toUpperCase();
 		const SmNo = (pdo == txpdo) ? 3 : 2;
@@ -231,13 +260,21 @@ function esi_generator(form, od, indexes, dc)
 		case OTYPE.VAR: {
 			const esiType = esiVariableTypeName(objd);
 			const bitsize = varBitsize(objd);
+			console.log('Processing VAR type PDO:', {
+				esiType: esiType,
+				bitsize: bitsize
+			});
 			esi += `\n          <Entry>\n            <Index>#x${index}</Index>\n            <SubIndex>#x${subindex.toString(16)}</SubIndex>\n            <BitLen>${bitsize}</BitLen>\n            <Name>${objd.name}</Name>\n            <DataType>${esiType}</DataType>\n          </Entry>`;
 			esi += pdoBooleanPadding(objd);
 			break;
 		}
 		case OTYPE.ARRAY: {
 			const esiType = esiVariableTypeName(objd);
-			const bitsize = varBitsize(objd); //  todo probably esiBitsize() ?
+			const bitsize = varBitsize(objd);
+			console.log('Processing ARRAY type PDO:', {
+				esiType: esiType,
+				bitsize: bitsize
+			});
 			subindex = 1;  // skip 'Max subindex'
 			objd.items.slice(subindex).forEach(subitem => {
 				esi += `\n          <Entry>\n            <Index>#x${index}</Index>\n            <SubIndex>#x${subindex.toString(16)}</SubIndex>\n            <BitLen>${bitsize}</BitLen>\n            <Name>${subitem.name}</Name>\n            <DataType>${esiType}</DataType>\n          </Entry>`;
@@ -247,10 +284,16 @@ function esi_generator(form, od, indexes, dc)
 			break;
 		}
 		case OTYPE.RECORD: {
+			console.log('Processing RECORD type PDO');
 			subindex = 1;  // skip 'Max subindex'
 			objd.items.slice(subindex).forEach(subitem => {
 				const esiType = esiVariableTypeName(subitem);
-				const bitsize = varBitsize(subitem); //  todo probably esiBitsize() ?
+				const bitsize = varBitsize(subitem);
+				console.log('Processing RECORD subitem:', {
+					subitem: subitem,
+					esiType: esiType,
+					bitsize: bitsize
+				});
 				esi += `\n          <Entry>\n            <Index>#x${index}</Index>\n            <SubIndex>#x${subindex.toString(16)}</SubIndex>\n            <BitLen>${bitsize}</BitLen>\n            <Name>${subitem.name}</Name>\n            <DataType>${esiType}</DataType>\n          </Entry>`;
 				esi += pdoBooleanPadding(subitem);
 				++subindex;

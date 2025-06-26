@@ -55,27 +55,12 @@ function test_program_generator(form, od, indexes) {
     // Variable declarations
     code += '    // Variable declarations\n';
     
-    // First declare all output variables
+    // Declare all PDO variables (excluding CRC variables)
     odList.forEach((variable) => {
-        if (variable.pdo_mappings) {
+        if (variable.pdo_mappings && !variable.name.toLowerCase().startsWith('crc_')) {
             const varName = variable.name.toLowerCase();
-            if (varName.startsWith('testoutput_')) {
-                const cType = getCTypeFromDtype(variable.dtype);
-                code += `    ${cType} ${varName};\n`;
-            }
-        }
-    });
-
-    code += '\n';
-
-    // Then declare all input variables
-    odList.forEach((variable) => {
-        if (variable.pdo_mappings) {
-            const varName = variable.name.toLowerCase();
-            if (varName.startsWith('testinput_')) {
-                const cType = getCTypeFromDtype(variable.dtype);
-                code += `    ${cType} ${varName};\n`;
-            }
+            const cType = getCTypeFromDtype(variable.dtype);
+            code += `    ${cType} ${varName} = 0;  // ${variable.dtype}\n`;
         }
     });
 
@@ -84,27 +69,31 @@ function test_program_generator(form, od, indexes) {
     // Start of infinite loop
     code += '    while (1) {\n';
 
-    // First read from variables that are outputs (e.g., testoutput_N)
+    // Add section for reading RxPDO variables (data received from master)
+    code += '        // ========== READ OPERATIONS ==========\n';
+    code += '        // Read RxPDO variables (data received from EtherCAT master)\n';
     odList.forEach((variable) => {
-        if (variable.pdo_mappings) {
+        if (variable.pdo_mappings && variable.pdo_mappings.includes('rxpdo') && !variable.name.toLowerCase().startsWith('crc_')) {
             const varName = variable.name.toLowerCase();
             const ioctlName = `RD_VALUE_${varName.toUpperCase()}`;
-            if (varName.startsWith('testoutput_')) {
-                code += `        ioctl(dev, ${ioctlName}, &${varName});\n`;
-            }
+            code += `        ioctl(dev, ${ioctlName}, &${varName});  // Read ${variable.name} (RxPDO)\n`;
         }
     });
 
     code += '\n';
+    code += '        // ========== PROCESSING SECTION ==========\n';
+    code += '        // Add your custom logic here\n';
+    code += '        // Example: Process received data and prepare data to transmit\n';
+    code += '        \n';
 
-    // Then write to variables that are inputs (e.g., testinput_N)
+    // Add section for writing TxPDO variables (data to transmit to master)
+    code += '        // ========== WRITE OPERATIONS ==========\n';
+    code += '        // Write TxPDO variables (data to transmit to EtherCAT master)\n';
     odList.forEach((variable) => {
-        if (variable.pdo_mappings) {
+        if (variable.pdo_mappings && variable.pdo_mappings.includes('txpdo') && !variable.name.toLowerCase().startsWith('crc_')) {
             const varName = variable.name.toLowerCase();
             const ioctlName = `WR_VALUE_${varName.toUpperCase()}`;
-            if (varName.startsWith('testinput_')) {
-                code += `        ioctl(dev, ${ioctlName}, &${varName});\n`;
-            }
+            code += `        ioctl(dev, ${ioctlName}, &${varName});  // Write ${variable.name} (TxPDO)\n`;
         }
     });
 

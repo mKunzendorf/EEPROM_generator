@@ -80,10 +80,6 @@ window.onload = (event) => {
 	const form = getForm();
 	setFormValues(form, getFormDefaultValues());
 	
-	// TEMPORARY: Clear localStorage to fix persistent ordering issues
-	console.log('=== CLEARING LOCALSTORAGE TO FIX ORDERING ===');
-	resetLocalBackup();
-	
 	tryRestoreLocalBackup(form, odSections, _dc, _tcmod);
 	
 	// Initialize CRC state tracking after form is set up

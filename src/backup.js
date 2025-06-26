@@ -40,15 +40,6 @@ function sortPdoSectionByHex(pdoSection) {
 		return numA - numB;
 	});
 	
-	console.log('sortPdoSectionByHex DEBUG:');
-	console.log('  Input keys:', originalKeys.join(', '));
-	console.log('  Sorted keys:', sortedKeys.join(', '));
-	console.log('  6009 hex value:', parseInt('6009', 16));
-	console.log('  600A hex value:', parseInt('600A', 16));
-	console.log('  6010 hex value:', parseInt('6010', 16));
-	console.log('  Sort comparison 6009 vs 600A:', parseInt('6009', 16) - parseInt('600A', 16));
-	console.log('  Sort comparison 600A vs 6010:', parseInt('600A', 16) - parseInt('6010', 16));
-	
 	// Rebuild the object with sorted keys - use a different approach
 	const sortedSection = {};
 	
@@ -61,11 +52,6 @@ function sortPdoSectionByHex(pdoSection) {
 	sortedKeys.forEach(key => {
 		sortedSection[key] = pdoSection[key];
 	});
-	
-	// Verify the result
-	const resultKeys = Object.keys(sortedSection);
-	console.log('  Result keys after rebuild:', resultKeys.join(', '));
-	console.log('  Sort successful:', JSON.stringify(sortedKeys) === JSON.stringify(resultKeys));
 	
 	return sortedSection;
 }
@@ -127,10 +113,6 @@ function prepareBackupObject(form, odSections, dc, tcmod, indexes) {
 function loadBackup(backupObject, form, odSections, dc, tcmod) {
 	// restore OD sections WITH PROPER SORTING to fix old backups
 	if (backupObject.od) {
-		console.log('=== LOADING BACKUP WITH SORTING ===');
-		console.log('Backup txpdo keys before sorting:', Object.keys(backupObject.od.txpdo || {}).join(', '));
-		console.log('Backup rxpdo keys before sorting:', Object.keys(backupObject.od.rxpdo || {}).join(', '));
-		
 		// Create a temporary OD to get proper sorted indexes
 		const tempOd = {};
 		
@@ -141,7 +123,6 @@ function loadBackup(backupObject, form, odSections, dc, tcmod) {
 		
 		// Get properly sorted indexes
 		const sortedIndexes = getUsedIndexes(tempOd);
-		console.log('Generated sorted indexes for load:', sortedIndexes.join(', '));
 		
 		// Filter indexes to only PDO ranges and sort them properly
 		const txpdoIndexes = sortedIndexes.filter(index => {
@@ -153,9 +134,6 @@ function loadBackup(backupObject, form, odSections, dc, tcmod) {
 			const hexVal = parseInt(index, 16);
 			return hexVal >= 0x7000 && hexVal < 0x8000 && backupObject.od.rxpdo && backupObject.od.rxpdo[index];
 		}).sort((a, b) => parseInt(a, 16) - parseInt(b, 16));
-		
-		console.log('Filtered txpdo indexes for load:', txpdoIndexes.join(', '));
-		console.log('Filtered rxpdo indexes for load:', rxpdoIndexes.join(', '));
 		
 		// Rebuild odSections with proper ordering
 		odSections.sdo = backupObject.od.sdo || {};
@@ -173,9 +151,6 @@ function loadBackup(backupObject, form, odSections, dc, tcmod) {
 			sortedRxpdo[index] = backupObject.od.rxpdo[index];
 		});
 		odSections.rxpdo = sortedRxpdo;
-		
-		console.log('Loaded txpdo keys after sorting:', Object.keys(odSections.txpdo).join(', '));
-		console.log('Loaded rxpdo keys after sorting:', Object.keys(odSections.rxpdo).join(', '));
 	}
 
 	if (backupObject.dc) {
@@ -308,10 +283,6 @@ function restoreBackup(backupFileContent, form, odSections, _dc, _tcmod) {
 	
 	// restore OD sections WITH PROPER SORTING to fix old backups
 	if (backupObject.od) {
-		console.log('=== RESTORING BACKUP WITH SORTING ===');
-		console.log('Backup txpdo keys before sorting:', Object.keys(backupObject.od.txpdo).join(', '));
-		console.log('Backup rxpdo keys before sorting:', Object.keys(backupObject.od.rxpdo).join(', '));
-		
 		// Create a temporary OD to get proper sorted indexes
 		const tempOd = {};
 		
@@ -322,7 +293,6 @@ function restoreBackup(backupFileContent, form, odSections, _dc, _tcmod) {
 		
 		// Get properly sorted indexes
 		const sortedIndexes = getUsedIndexes(tempOd);
-		console.log('Generated sorted indexes for restore:', sortedIndexes.join(', '));
 		
 		// Filter indexes to only PDO ranges and sort them properly
 		const txpdoIndexes = sortedIndexes.filter(index => {
@@ -334,9 +304,6 @@ function restoreBackup(backupFileContent, form, odSections, _dc, _tcmod) {
 			const hexVal = parseInt(index, 16);
 			return hexVal >= 0x7000 && hexVal < 0x8000 && backupObject.od.rxpdo && backupObject.od.rxpdo[index];
 		}).sort((a, b) => parseInt(a, 16) - parseInt(b, 16));
-		
-		console.log('Filtered txpdo indexes for restore:', txpdoIndexes.join(', '));
-		console.log('Filtered rxpdo indexes for restore:', rxpdoIndexes.join(', '));
 		
 		// Rebuild odSections with proper ordering
 		odSections.sdo = backupObject.od.sdo || {};
@@ -354,9 +321,6 @@ function restoreBackup(backupFileContent, form, odSections, _dc, _tcmod) {
 			sortedRxpdo[index] = backupObject.od.rxpdo[index];
 		});
 		odSections.rxpdo = sortedRxpdo;
-		
-		console.log('Restored txpdo keys after sorting:', Object.keys(odSections.txpdo).join(', '));
-		console.log('Restored rxpdo keys after sorting:', Object.keys(odSections.rxpdo).join(', '));
 	}
 	
 	// restore synchronization modes

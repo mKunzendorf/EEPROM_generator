@@ -228,11 +228,16 @@ function esi_generator(form, od, indexes, dc)
 	}
 	
 	//Add Mailbox DLL
-	esi += `        <Mailbox DataLinkLayer="true">\n          <CoE ${getCoEMailboxSection(form)}/>\n`
-	if (form.DetailsEnableUseFoE.checked) {
-	esi += `          <FoE/>\n`
+	if (form.CoeDetailsEnableCoE.checked || form.DetailsEnableUseFoE.checked) {
+		esi += `        <Mailbox DataLinkLayer="true">\n`;
+		if (form.CoeDetailsEnableCoE.checked) {
+			esi += `          <CoE ${getCoEMailboxSection(form)}/>\n`;
+		}
+		if (form.DetailsEnableUseFoE.checked) {
+			esi += `          <FoE/>\n`;
+		}
+		esi +=`        </Mailbox>\n`;
 	}
-	esi +=`        </Mailbox>\n`;
 	//Add DCs
 	esi += getEsiDCsection(dc);
 	//Add EEPROM

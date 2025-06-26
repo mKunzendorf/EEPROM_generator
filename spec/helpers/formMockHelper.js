@@ -51,6 +51,7 @@ function getEmptyFrom() {
         Port3Physical: { name: "Port3Physical", },
         ESC: { name: "ESC", },
         SPImode: { name: "SPImode", },
+        CoeDetailsEnableCoE: { name: "CoeDetailsEnableCoE", },
         CoeDetailsEnableSDO: { name: "CoeDetailsEnableSDO", },
         CoeDetailsEnableSDOInfo: { name: "CoeDetailsEnableSDOInfo", },
         CoeDetailsEnablePDOAssign: { name: "CoeDetailsEnablePDOAssign", },

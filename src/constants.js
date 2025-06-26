@@ -207,6 +207,7 @@ function getFormDefaultValues() {
 		Port3Physical: " ",
 		ESC: SupportedESC.ET1100,
 		SPImode: "3",
+		CoeDetailsEnableCoE: true,
 		CoeDetailsEnableSDO: true,
 		CoeDetailsEnableSDOInfo: true,
 		CoeDetailsEnablePDOAssign: false,

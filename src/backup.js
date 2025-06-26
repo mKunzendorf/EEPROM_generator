@@ -249,8 +249,20 @@ function stringifyBackupWithCorrectOrder(backupObject) {
 		jsonStr += txpdoEntries.join(',\n') + '\n';
 		jsonStr += '    },\n';
 		
-		// Build rxpdo section
-		jsonStr += '    "rxpdo": ' + JSON.stringify(backupObject.od.rxpdo, null, 2).replace(/\n/g, '\n    ') + '\n';
+		// Build rxpdo section in exact order
+		jsonStr += '    "rxpdo": {\n';
+		const rxpdoEntries = [];
+		if (backupObject.od._rxpdoOrder) {
+			backupObject.od._rxpdoOrder.forEach((index, arrayIndex) => {
+				if (backupObject.od.rxpdo[index]) {
+					const entryJson = JSON.stringify(backupObject.od.rxpdo[index], null, 2).replace(/\n/g, '\n      ');
+					rxpdoEntries.push(`      "${index}": ${entryJson}`);
+				}
+			});
+		}
+		jsonStr += rxpdoEntries.join(',\n') + '\n';
+		jsonStr += '    }\n';
+		
 		jsonStr += '  },\n';
 		
 		// Add dc and tcmod sections

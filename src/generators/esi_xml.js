@@ -187,8 +187,9 @@ function esi_generator(form, od, indexes, dc)
 	});
 
 	// Calculate PDO sizes for SyncManager default sizes
-	const rxpdoSize = calculatePdoSize(od, indexes, rxpdo);
-	const txpdoSize = calculatePdoSize(od, indexes, txpdo);
+	// Use unpadded size for ESI XML (Beckhoff master requirement)
+	const rxpdoSize = calculatePdoSizeForEsi(od, indexes, rxpdo);
+	const txpdoSize = calculatePdoSizeForEsi(od, indexes, txpdo);
 
 	esi += `\n            </Objects>\n          </Dictionary>\n        </Profile>\n        <Fmmu>Outputs</Fmmu>\n        <Fmmu>Inputs</Fmmu>\n        <Fmmu>MBoxState</Fmmu>\n`;
 	//Add Rxmailbox sizes
@@ -455,7 +456,7 @@ function esi_generator(form, od, indexes, dc)
 		}
 	}	
 
-	// Calculate total PDO size in bytes
+	// Calculate total PDO size in bytes with 4-byte alignment (for LAN9252 SPI)
 	function calculatePdoSize(od, indexes, pdoType) {
 		let totalSize = 0;
 		indexes.forEach(index => {
@@ -466,6 +467,19 @@ function esi_generator(form, od, indexes, dc)
 		});
 		// Round up to nearest 4 bytes for alignment
 		return Math.ceil(totalSize / 4) * 4;
+	}
+
+	// Calculate total PDO size in bytes without padding (for Beckhoff EtherCAT master ESI)
+	function calculatePdoSizeForEsi(od, indexes, pdoType) {
+		let totalSize = 0;
+		indexes.forEach(index => {
+			const objd = od[index];
+			if (objd.pdo_mappings && objd.pdo_mappings.includes(pdoType)) {
+				totalSize += getDataTypeSize(objd.dtype);
+			}
+		});
+		// Return actual size without alignment padding
+		return totalSize;
 	}
 
 	// Helper function to get size of data type in bytes

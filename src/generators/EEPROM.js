@@ -353,6 +353,12 @@ function hex_generator(form, stringOnly=false)
 		for (let bytecount = 0; bytecount < configdata_bytecount; bytecount++) {
 			configdata += (record[bytecount] + 0x100).toString(16).slice(-2).toUpperCase();
 		}
+		
+		// Pad to 8 bytes (16 hex characters) for CTT compliance if less than 8 bytes
+		while (configdata.length < 16) {
+			configdata = '00' + configdata;
+		}
+		
 		return configdata;
 	}
 

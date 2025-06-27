@@ -356,7 +356,7 @@ function hex_generator(form, stringOnly=false)
 		
 		// Pad to 8 bytes (16 hex characters) for CTT compliance if less than 8 bytes
 		while (configdata.length < 16) {
-			configdata = '00' + configdata;
+			configdata = configdata + '00';
 		}
 		
 		return configdata;

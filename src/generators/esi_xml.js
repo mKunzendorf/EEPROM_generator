@@ -186,15 +186,19 @@ function esi_generator(form, od, indexes, dc)
 		is_txpdo: is_txpdo
 	});
 
+	// Calculate PDO sizes for SyncManager default sizes
+	const rxpdoSize = calculatePdoSize(od, indexes, rxpdo);
+	const txpdoSize = calculatePdoSize(od, indexes, txpdo);
+
 	esi += `\n            </Objects>\n          </Dictionary>\n        </Profile>\n        <Fmmu>Outputs</Fmmu>\n        <Fmmu>Inputs</Fmmu>\n        <Fmmu>MBoxState</Fmmu>\n`;
 	//Add Rxmailbox sizes
 	esi += `        <Sm DefaultSize="${parseInt(form.MailboxSize.value).toString(10)}" StartAddress="#x${indexToString(form.RxMailboxOffset.value)}" ControlByte="#x26" Enable="1">MBoxOut</Sm>\n`;
 	//Add Txmailbox sizes
 	esi += `        <Sm DefaultSize="${parseInt(form.MailboxSize.value).toString(10)}" StartAddress="#x${indexToString(form.TxMailboxOffset.value)}" ControlByte="#x22" Enable="1">MBoxIn</Sm>\n`;
-	//Add SM2
-	esi += `        <Sm StartAddress="#x${indexToString(form.SM2Offset.value)}" ControlByte="#x24" Enable="${is_rxpdo ? 1 : 0}">Outputs</Sm>\n`;
-	//Add SM3
-	esi += `        <Sm StartAddress="#x${indexToString(form.SM3Offset.value)}" ControlByte="#x20" Enable="${is_txpdo ? 1 : 0}">Inputs</Sm>\n`;
+	//Add SM2 with calculated default size for RxPDO
+	esi += `        <Sm DefaultSize="${rxpdoSize}" StartAddress="#x${indexToString(form.SM2Offset.value)}" ControlByte="#x24" Enable="${is_rxpdo ? 1 : 0}">Outputs</Sm>\n`;
+	//Add SM3 with calculated default size for TxPDO
+	esi += `        <Sm DefaultSize="${txpdoSize}" StartAddress="#x${indexToString(form.SM3Offset.value)}" ControlByte="#x20" Enable="${is_txpdo ? 1 : 0}">Inputs</Sm>\n`;
 	if (is_rxpdo) {
 		let memOffset = getSM2_MappingOffset(form);
 		indexes.forEach(index => {
@@ -450,4 +454,40 @@ function esi_generator(form, od, indexes, dc)
 				break;
 		}
 	}	
+
+	// Calculate total PDO size in bytes
+	function calculatePdoSize(od, indexes, pdoType) {
+		let totalSize = 0;
+		indexes.forEach(index => {
+			const objd = od[index];
+			if (objd.pdo_mappings && objd.pdo_mappings.includes(pdoType)) {
+				totalSize += getDataTypeSize(objd.dtype);
+			}
+		});
+		// Round up to nearest 4 bytes for alignment
+		return Math.ceil(totalSize / 4) * 4;
+	}
+
+	// Helper function to get size of data type in bytes
+	function getDataTypeSize(dtype) {
+		switch (dtype) {
+			case DTYPE.UNSIGNED8:
+			case DTYPE.INTEGER8:
+			case DTYPE.BOOLEAN:
+				return 1;
+			case DTYPE.UNSIGNED16:
+			case DTYPE.INTEGER16:
+				return 2;
+			case DTYPE.UNSIGNED32:
+			case DTYPE.INTEGER32:
+			case DTYPE.REAL32:
+				return 4;
+			case DTYPE.UNSIGNED64:
+			case DTYPE.INTEGER64:
+			case DTYPE.REAL64:
+				return 8;
+			default:
+				return 4; // Default size
+		}
+	}
 }

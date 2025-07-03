@@ -30,7 +30,7 @@ function esi_generator(form, od, indexes, dc)
 	//Groups
 	esi += `    <Groups>\n      <Group>\n        <Type>${form.TextGroupType.value}</Type>\n        <Name LcId="1033">${form.TextGroupName5.value}</Name>\n      </Group>\n    </Groups>\n    <Devices>\n`;
 	//Physics  
-	esi += `      <Device Physics="${form.Port0Physical.value + form.Port1Physical.value + form.Port2Physical.value || + form.Port3Physical.value}">\n        <Type ProductCode="#x${parseInt(form.ProductCode.value).toString(16)}" RevisionNo="#x${parseInt(form.RevisionNumber.value).toString(16)}">${form.TextDeviceType.value}</Type>\n`;
+	esi += `      <Device Physics="${(form.Port0Physical.value + form.Port1Physical.value + form.Port2Physical.value + form.Port3Physical.value).replace(/\s+/g, '')}">\n        <Type ProductCode="#x${parseInt(form.ProductCode.value).toString(16)}" RevisionNo="#x${parseInt(form.RevisionNumber.value).toString(16)}">${form.TextDeviceType.value}</Type>\n`;
 	//Add  Name info
 	esi += `        <Name LcId="1033">${form.TextDeviceName.value}</Name>\n`;
 	//Add in between

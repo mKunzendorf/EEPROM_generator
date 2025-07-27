@@ -63,7 +63,7 @@ function hex_generator(form, stringOnly=false)
 		writeEEPROMbyte_byteaddress(0x44,       3, record);    // SYNC /LATCH configuration (mapped to 0x0151). Make both Syncs output
 		writeEEPROMword_wordaddress(0x0064,     2, record);    // Syncsignal Pulselenght in 10ns units(mapped to 0x0982:0x0983)
 		writeEEPROMword_wordaddress(0x00,       3, record);    // Extended PDI configuration (none for SPI slave)(0x0152:0x0153)
-		writeEEPROMword_wordaddress(0x00,       4, record);    // Configured Station Alias (0x0012:0x0013)
+		writeEEPROMword_wordaddress(0x0042, 4, record);    // Configured Station Alias (0x0012:0x0013)
 		writeEEPROMword_wordaddress(reserved_0x05,5, record);  // Reserved, 0 (when not AX58100, LAN9253/4/5)
 		writeEEPROMword_wordaddress(0,          6, record);    // Reserved, 0
 		const crc = FindCRC(record, 14);
@@ -365,7 +365,8 @@ function hex_generator(form, stringOnly=false)
 	// see Table18 in ETG1000.6
 	// always enabled CoE = 0x04, optionally enable FoE
 	function getProtocols(form) {
-		return form.DetailsEnableUseFoE.checked ? 0x0C : 0x04
+		//return form.DetailsEnableUseFoE.checked ? 0x0C : 0x04
+		return form.DetailsEnableUseFoE.checked ? 0x0C : 0x00;
 	}
 
 	function getEnableFoEBit(form) {
@@ -373,3 +374,5 @@ function hex_generator(form, stringOnly=false)
 	}
 	
 }
+
+

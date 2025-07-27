@@ -1,20 +1,9 @@
 function structure_handle_generator_cpp(form, od, indexes) {
-    // DEBUG: Add console logging to understand the sorting issue
-    console.log('=== STRUCTURE HANDLE CPP GENERATOR DEBUG ===');
-    console.log('Raw OD object keys:', Object.keys(od));
-    console.log('Indexes parameter (properly sorted):', indexes);
-    
     // Create properly sorted array using indexes
     const odList = indexes.map(index => ({
         ...od[index],
         index: index // Store the index for reference
     }));
-    
-    console.log('Sorted odList with indexes:', odList.map(item => ({ 
-        index: item.index, 
-        name: item.name,
-        pdo_mappings: item.pdo_mappings 
-    })));
 
     let code = '';
     code += '#include "ethercat_structure/cpp/structure_handle_cpp.h"\n';
@@ -33,7 +22,6 @@ function structure_handle_generator_cpp(form, od, indexes) {
             
             // Skip CRC variables if CRC is enabled
             if (!form.DetailsEnableCRC.checked || !varName.toLowerCase().includes('crc')) {
-                console.log(`RXPDO processing: ${variable.index} - ${varName} at offset ${offset}`);
                 if (dtype === 'BOOLEAN') {
                     code += `    output_structure_data.${varName} = outputData[${offset}] & 0x01;\n`;
                     offset += 1;  // Move to next byte for each boolean
@@ -59,7 +47,6 @@ function structure_handle_generator_cpp(form, od, indexes) {
             
             // Skip CRC variables if CRC is enabled
             if (!form.DetailsEnableCRC.checked || !varName.toLowerCase().includes('crc')) {
-                console.log(`TXPDO processing: ${variable.index} - ${varName} at offset ${offset}`);
                 if (dtype === 'BOOLEAN') {
                     code += `    inputData[${offset}] = input_structure_data.${varName} ? 1 : 0;\n`;
                     offset += 1;  // Move to next byte for each boolean

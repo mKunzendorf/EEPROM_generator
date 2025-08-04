@@ -142,6 +142,7 @@ function processForm(form)
 	outputCtl.structure_handle_cpp_cpp.value = structure_handle_generator_cpp(form, od, indexes);
 	outputCtl.ioctl_lan9252.value = ioctl_lan9252_generator(form, od, indexes);
 	outputCtl.main_cpp.value = main_generator(form, od, indexes);
+	outputCtl.ethercat_master_header.value = ethercat_master_header_generator(form, od, indexes);
 	
 	// Generate TwinCAT module files
 	const twincatModules = twincat_gvl_generator(form, od, indexes, _tcmod);
@@ -220,6 +221,12 @@ function onGenerateDownloadClick()
 
 function onGenerateClick() {
 	processForm(getForm());
+}
+
+function getDeviceHeaderFileName() {
+	const form = getForm();
+	const deviceName = form.TextDeviceName.value.replace(/[^a-zA-Z0-9]/g, '');
+	return `${deviceName}.h`;
 }
 
 function onSaveClick() {

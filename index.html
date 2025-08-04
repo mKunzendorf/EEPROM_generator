@@ -32,6 +32,7 @@
    <script src="src/generators/structure_handle_generator_cpp.js"></script>
    <script src="src/generators/ioctl_lan9252_generator.js"></script>
    <script src="src/generators/main_generator.js"></script>
+   <script src="src/generators/ethercat_master_header_generator.js"></script>
    <script src="src/generators/test_program_generator.js"></script>
    <script src="src/generators/twincat_gvl_generator.js"></script>
    <script src="src/generators/twincat_crc_generator.js"></script>
@@ -476,6 +477,15 @@
          </button>
          <br>
          <textarea cols="150" rows="12" name="main_cpp">main.cpp</textarea><br><br>
+
+         <!-- EtherCAT Master Integration -->
+         EtherCAT Master Header (.h):
+         <button name="Download_ethercat_master_header" 
+            onClick="downloadFile(getOutputForm().ethercat_master_header.value, getDeviceHeaderFileName(), 'text/plain');">
+            🔽 &nbsp; Download &nbsp;
+         </button>
+         <br>
+         <textarea cols="150" rows="12" name="ethercat_master_header">EtherCAT Master Header (.h)</textarea><br><br>
 
          <!-- TwinCAT folder -->
          <div id="twincat_modules_section">

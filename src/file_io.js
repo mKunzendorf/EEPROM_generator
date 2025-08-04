@@ -42,6 +42,7 @@ function downloadGeneratedFilesZipped(result, projectName) {
 
 	// Add files to the 'master' folder
 	zip.file(`master/${projectName}.xml`, result.ESI.value);
+	zip.file(`master/${projectName}.h`, result.ethercat_master_header.value);
 
 	// Add files to the 'linux' folder
 	zip.file('linux/ioctl_lan9252.h', result.ioctl_lan9252.value);
